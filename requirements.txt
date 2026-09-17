@@ -119,7 +119,7 @@ minio
 playwright
 playwright-stealth
 pydantic-settings>=2.1.0
-python-json-logger>=2.0.7
+python-json-logger>=4.2.0
 huggingface_hub[hf_xet]
 streamlit
 
