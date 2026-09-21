@@ -10,7 +10,7 @@ pdf2image  # PDF to image conversion for Vision RAG
 langchain
 langchain-community
 sentence-transformers>=6.0.1
-huggingface-hub>=0.20.0
+huggingface-hub>=1.32.0
 tiktoken  # Token counting
 textblob  # Sentiment analysis
 youtube-transcript-api  # YouTube transcript extraction
