@@ -21,7 +21,7 @@
     "@radix-ui/react-switch": "^1.2.6",
     "@radix-ui/react-tabs": "^1.1.13",
     "@radix-ui/react-tooltip": "^1.2.8",
-    "@tailwindcss/postcss": "^4.1.17",
+    "@tailwindcss/postcss": "^4.3.3",
     "@upstash/redis": "^1.35.7",
     "@vercel/analytics": "^1.6.1",
     "@vercel/speed-insights": "^1.2.0",
