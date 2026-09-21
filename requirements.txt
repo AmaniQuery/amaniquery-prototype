@@ -95,7 +95,7 @@ einops
 
 # OpenTelemetry
 opentelemetry-api>=1.39.0
-opentelemetry-sdk>=1.39.1
+opentelemetry-sdk>=1.44.0
 opentelemetry-exporter-otlp>=1.39.1
 
 # Agentic AI & LangGraph
