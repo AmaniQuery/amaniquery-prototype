@@ -70,7 +70,7 @@ numpy
 tqdm
 schedule
 celery
-apscheduler>=3.10.0
+apscheduler>=3.11.3
 colorama
 psutil
 reportlab
