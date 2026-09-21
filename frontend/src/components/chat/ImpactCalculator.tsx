@@ -74,7 +74,7 @@ export function ImpactCalculator({ widget, className }: ImpactCalculatorProps) {
 
       // Format outputs
       widget.outputs.forEach(output => {
-        let formatted = output.format.replace("{value}", resultValue.toLocaleString(undefined, { maximumFractionDigits: 2 }))
+        const formatted = output.format.replace("{value}", resultValue.toLocaleString(undefined, { maximumFractionDigits: 2 }))
         initialResults[output.label] = formatted
       })
 

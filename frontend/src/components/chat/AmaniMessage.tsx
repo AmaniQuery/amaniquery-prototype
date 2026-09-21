@@ -95,11 +95,10 @@ function CitationTooltip({ source, position }: CitationTooltipProps) {
   )
 }
 
-// Helper to replace [1], [2] etc with citation placeholders
 function processContentWithCitations(content: string, sources?: Source[]) {
   if (!sources || sources.length === 0) return content
 
-  let processedContent = content
+  const processedContent = content
   // Regex to match [1], [2], etc.
   const citationPattern = /\[(\d+)\]/g
   
@@ -117,6 +116,50 @@ function processContentWithCitations(content: string, sources?: Source[]) {
     }
     return match
   })
+}
+
+function MarkdownCodeBlock({ children, className, ...props }: { children: React.ReactNode, className?: string }) {
+  const [copied, setCopied] = useState(false)
+  const match = /language-(\w+)/.exec(className || "")
+  const isInline = !match && !String(children).includes("\n")
+
+  const handleCopyCode = async () => {
+    await navigator.clipboard.writeText(String(children).replace(/\n$/, ''))
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  if (isInline) {
+    return (
+      <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground border border-border" {...props}>
+        {children}
+      </code>
+    )
+  }
+
+  return (
+    <div className="relative my-4 rounded-lg border border-border bg-muted/50 overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-muted/80 border-b border-border text-xs text-muted-foreground font-mono">
+        <span>{match?.[1] || 'code'}</span>
+        <button
+          type="button"
+          onClick={handleCopyCode}
+          className="flex items-center gap-1 hover:text-foreground transition-colors"
+        >
+          {copied ? (
+            <><Check className="w-3 h-3 text-green-500" /> Copied</>
+          ) : (
+            <><Copy className="w-3 h-3" /> Copy</>
+          )}
+        </button>
+      </div>
+      <div className="overflow-x-auto p-4">
+        <code className={cn("text-sm font-mono block", className)} {...props}>
+          {children}
+        </code>
+      </div>
+    </div>
+  )
 }
 
 export function AmaniMessage({ 
@@ -265,49 +308,7 @@ export function AmaniMessage({
                     img: ({ src, alt }) => (
                       <img src={src} alt={alt || ""} className="max-w-full h-auto rounded-lg border border-border my-4" loading="lazy" />
                     ),
-                    code: ({ children, className, ...props }) => {
-                      const match = /language-(\w+)/.exec(className || "")
-                      const isInline = !match && !String(children).includes("\n")
-                      const [copied, setCopied] = useState(false)
-
-                      const handleCopyCode = async () => {
-                        await navigator.clipboard.writeText(String(children).replace(/\n$/, ''))
-                        setCopied(true)
-                        setTimeout(() => setCopied(false), 2000)
-                      }
-
-                      if (isInline) {
-                        return (
-                          <code className="bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground border border-border" {...props}>
-                            {children}
-                          </code>
-                        )
-                      }
-
-                      return (
-                        <div className="relative my-4 rounded-lg border border-border bg-muted/50 overflow-hidden">
-                          <div className="flex items-center justify-between px-3 py-1.5 bg-muted/80 border-b border-border text-xs text-muted-foreground font-mono">
-                            <span>{match?.[1] || 'code'}</span>
-                            <button
-                              type="button"
-                              onClick={handleCopyCode}
-                              className="flex items-center gap-1 hover:text-foreground transition-colors"
-                            >
-                              {copied ? (
-                                <><Check className="w-3 h-3 text-green-500" /> Copied</>
-                              ) : (
-                                <><Copy className="w-3 h-3" /> Copy</>
-                              )}
-                            </button>
-                          </div>
-                          <div className="overflow-x-auto p-4">
-                            <code className={cn("text-sm font-mono block", className)} {...props}>
-                              {children}
-                            </code>
-                          </div>
-                        </div>
-                      )
-                    },
+                    code: MarkdownCodeBlock,
                     input: ({ type, checked, ...props }) => {
                       if (type === "checkbox") {
                         return (

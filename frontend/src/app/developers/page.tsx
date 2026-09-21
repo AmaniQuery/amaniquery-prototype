@@ -39,23 +39,15 @@ import {
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
-export default function DevelopersPage() {
-  const [copiedSection, setCopiedSection] = useState<string | null>(null)
-
-  const copyToClipboard = (text: string, id: string) => {
-    navigator.clipboard.writeText(text)
-    setCopiedSection(id)
-    setTimeout(() => setCopiedSection(null), 2000)
-  }
-
-  const CodeBlock = ({ code, id, language = "text" }: { code: string, id: string, language?: string }) => (
+function CodeBlock({ code, id, language = "text", copiedSection, onCopy }: { code: string, id: string, language?: string, copiedSection: string | null, onCopy: (text: string, id: string) => void }) {
+  return (
     <div className="relative mt-4 group">
       <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <Button
           variant="secondary"
           size="sm"
           className="h-8 w-8 p-0"
-          onClick={() => copyToClipboard(code, id)}
+          onClick={() => onCopy(code, id)}
         >
           {copiedSection === id ? (
             <Check className="h-4 w-4 text-green-500" />
@@ -69,6 +61,16 @@ export default function DevelopersPage() {
       </pre>
     </div>
   )
+}
+
+export default function DevelopersPage() {
+  const [copiedSection, setCopiedSection] = useState<string | null>(null)
+
+  const copyToClipboard = (text: string, id: string) => {
+    navigator.clipboard.writeText(text)
+    setCopiedSection(id)
+    setTimeout(() => setCopiedSection(null), 2000)
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -231,7 +233,7 @@ export default function DevelopersPage() {
                       Golden Test Cases
                     </CardTitle>
                     <CardDescription>
-                      Standardized Q&A pairs for regression testing the agent's performance.
+                      Standardized Q&A pairs for regression testing the agent&apos;s performance.
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

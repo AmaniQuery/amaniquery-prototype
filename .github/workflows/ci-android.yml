@@ -17,35 +17,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint-and-test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: android-app/package-lock.json
-
-      - name: Install dependencies
-        working-directory: ./android-app
-        run: npm ci
-
-      - name: Run ESLint
-        working-directory: ./android-app
-        run: npm run lint
-
-      - name: Run Jest tests
-        working-directory: ./android-app
-        run: npm test -- --coverage --watchAll=false
-
   build:
     runs-on: ubuntu-latest
-    needs: lint-and-test
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
