@@ -51,7 +51,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./Dockerfile.api
+          file: ./Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta-api.outputs.tags }}
           labels: ${{ steps.meta-api.outputs.labels }}
@@ -82,4 +82,4 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Test Docker Compose
-        run: docker-compose -f docker-compose.yml config
+        run: docker compose -f docker-compose.yml config
