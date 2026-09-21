@@ -118,7 +118,7 @@ flake8
 minio
 playwright
 playwright-stealth
-pydantic-settings>=2.1.0
+pydantic-settings>=2.15.0
 python-json-logger>=4.2.0
 huggingface_hub[hf_xet]
 streamlit
