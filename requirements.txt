@@ -99,7 +99,7 @@ opentelemetry-sdk>=1.39.1
 opentelemetry-exporter-otlp>=1.39.1
 
 # Agentic AI & LangGraph
-langgraph>=0.2.0
+langgraph>=1.2.11
 langchain-core>=0.3.0
 langchain-openai
 
