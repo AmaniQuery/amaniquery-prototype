@@ -12,6 +12,10 @@ on:
       - 'frontend/**'
       - '.github/workflows/docker-build.yml'
 
+concurrency:
+  group: docker-build-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
@@ -78,7 +82,4 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Test Docker Compose
-        run: |
-          docker-compose -f docker-compose.yml config
-        continue-on-error: true
-
+        run: docker-compose -f docker-compose.yml config

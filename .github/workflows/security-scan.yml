@@ -3,10 +3,12 @@ name: Security Scan
 on:
   push:
     branches: [master]
-  pull_request:
-    branches: [master]
   schedule:
     - cron: '0 0 * * 0' # Weekly on Sunday
+
+concurrency:
+  group: security-scan-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   codeql-analysis:
@@ -18,7 +20,7 @@ jobs:
       security-events: write
 
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         language: ['python', 'javascript']
 
@@ -54,13 +56,10 @@ jobs:
           cache: 'pip'
 
       - name: Install safety
-        run: |
-          pip install safety
+        run: pip install safety
 
       - name: Run safety check
-        run: |
-          safety check --file requirements.txt --json || true
-        continue-on-error: true
+        run: safety check --file requirements.txt --json || true
 
       - name: Set up Node.js
         uses: actions/setup-node@v7
@@ -69,20 +68,17 @@ jobs:
 
       - name: Run npm audit (Frontend)
         working-directory: ./frontend
-        run: |
-          npm audit --audit-level=moderate || true
-        continue-on-error: true
+        run: npm audit --audit-level=moderate || true
 
       - name: Run npm audit (Android)
         working-directory: ./android-app
-        run: |
-          npm audit --audit-level=moderate || true
-        continue-on-error: true
+        run: npm audit --audit-level=moderate || true
 
   container-scan:
     name: Container Security Scan
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    permissions:
+      security-events: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -98,7 +94,6 @@ jobs:
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: success()
         with:
           sarif_file: 'trivy-results.sarif'
-

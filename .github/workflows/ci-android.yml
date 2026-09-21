@@ -12,6 +12,10 @@ on:
       - 'android-app/**'
       - '.github/workflows/ci-android.yml'
 
+concurrency:
+  group: android-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
@@ -27,14 +31,6 @@ jobs:
           cache: 'npm'
           cache-dependency-path: android-app/package-lock.json
 
-      - name: Set up JDK
-        uses: actions/setup-java@v5
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
-          cache-dependency-path: android-app/android/build.gradle
-
       - name: Install dependencies
         working-directory: ./android-app
         run: npm ci
@@ -42,12 +38,25 @@ jobs:
       - name: Run ESLint
         working-directory: ./android-app
         run: npm run lint
-        continue-on-error: true
 
       - name: Run Jest tests
         working-directory: ./android-app
         run: npm test -- --coverage --watchAll=false
-        continue-on-error: true
+
+  build:
+    runs-on: ubuntu-latest
+    needs: lint-and-test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'gradle'
+          cache-dependency-path: android-app/android/build.gradle
 
       - name: Cache Gradle dependencies
         uses: actions/cache@v6
@@ -60,10 +69,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
-      - name: Build Android app (optional)
+      - name: Build Android app
         working-directory: ./android-app/android
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
-        continue-on-error: true
-
