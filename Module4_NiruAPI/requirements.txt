@@ -48,7 +48,7 @@ google-generativeai  # For Gemini AI
 
 # Agentic AI & LangGraph
 langgraph>=1.2.11
-langchain-core>=0.3.0
+langchain-core>=1.6.3
 
 # External Data Sources
 twikit>=0.1.0

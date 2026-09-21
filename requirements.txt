@@ -100,7 +100,7 @@ opentelemetry-exporter-otlp>=1.39.1
 
 # Agentic AI & LangGraph
 langgraph>=1.2.11
-langchain-core>=0.3.0
+langchain-core>=1.6.3
 langchain-openai
 
 # External Data Sources
