@@ -19,7 +19,7 @@ langchain
 langchain-community
 sentence-transformers>=2.2.0
 huggingface-hub>=0.20.0
-sentencepiece>=0.1.99
+sentencepiece>=0.2.2
 protobuf>=4.0.0
 tiktoken
 textblob
