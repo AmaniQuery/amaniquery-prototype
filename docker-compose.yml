@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Database
   chroma:
@@ -19,6 +17,28 @@ services:
       retries: 3
     networks:
       - amaniquery_network
+
+  # MinIO object storage (NiruSense, ENABLE_NIRUSENSE in api)
+  minio:
+    image: minio/minio:latest
+    container_name: amaniquery_minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=miniopassword123
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - amaniquery_network
+    restart: unless-stopped
 
   # API Backend (includes integrated scheduler)
   api:
