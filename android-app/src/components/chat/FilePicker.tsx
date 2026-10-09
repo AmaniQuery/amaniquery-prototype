@@ -7,10 +7,13 @@ import {
   ScrollView,
   Alert,
 } from 'react-native';
-import DocumentPicker, {
-  DocumentPickerResponse,
+import {
+  pick,
+  isErrorWithCode,
+  errorCodes,
   types,
-} from 'react-native-document-picker';
+  type DocumentPickerResponse,
+} from '@react-native-documents/picker';
 import Icon from 'react-native-vector-icons/Ionicons';
 
 interface FilePickerProps {
@@ -28,7 +31,7 @@ export const FilePicker: React.FC<FilePickerProps> = ({
 }) => {
   const pickDocument = async () => {
     try {
-      const results = await DocumentPicker.pick({
+      const results = await pick({
         type: [types.pdf, types.images, types.plainText],
         allowMultiSelection: true,
       });
@@ -70,7 +73,7 @@ export const FilePicker: React.FC<FilePickerProps> = ({
         onFilesChange([...files, ...newFiles]);
       }
     } catch (err) {
-      if (DocumentPicker.isCancel(err)) {
+      if (isErrorWithCode(err) && err.code === errorCodes.OPERATION_CANCELED) {
         // User cancelled
       } else {
         Alert.alert('Error', 'Failed to pick document');

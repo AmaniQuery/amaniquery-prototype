@@ -6,7 +6,7 @@ import {
   Platform,
   Alert,
 } from 'react-native';
-import {DocumentPickerResponse} from 'react-native-document-picker';
+import {type DocumentPickerResponse} from '@react-native-documents/picker';
 import {useChat} from '../../hooks/useChat';
 import {chatAPI} from '../../api/chat';
 import {MessageList} from './MessageList';

@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {FilePicker} from './FilePicker';
-import {DocumentPickerResponse} from 'react-native-document-picker';
+import {type DocumentPickerResponse} from '@react-native-documents/picker';
 
 interface ChatInputProps {
   onSend: (message: string, attachmentIds?: string[]) => void;
