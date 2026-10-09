@@ -2,6 +2,7 @@
 Usage Tracking Middleware
 Logs API usage for cost tracking and analytics
 """
+
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -17,7 +18,7 @@ from Module3_NiruDB.chat_models import create_database_engine, get_db_session
 
 class UsageTrackingMiddleware(BaseHTTPMiddleware):
     """Tracks API usage for analytics and cost attribution"""
-    
+
     def __init__(self, app, database_url: str = None):
         super().__init__(app)
         self.database_url = database_url or config.DATABASE_URL
@@ -25,19 +26,19 @@ class UsageTrackingMiddleware(BaseHTTPMiddleware):
             self.engine = create_database_engine(self.database_url)
         else:
             self.engine = None
-    
+
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Track request usage"""
         if not self.engine:
             return await call_next(request)
-        
+
         # Skip tracking for certain endpoints
         if request.url.path in ["/health", "/docs", "/openapi.json"]:
             return await call_next(request)
-        
+
         # Get auth context
         auth_context = getattr(request.state, "auth_context", None)
-        
+
         # Track request start time
         start_time = time.time()
         # Get request size from Content-Length header (safer than reading body)
@@ -50,10 +51,10 @@ class UsageTrackingMiddleware(BaseHTTPMiddleware):
         except (ValueError, TypeError):
             # Invalid content-length header - ignore
             request_size = 0
-        
+
         # Process request
         response = await call_next(request)
-        
+
         # Calculate metrics
         response_time_ms = (time.time() - start_time) * 1000
         # Get response size from Content-Length header if available
@@ -66,20 +67,20 @@ class UsageTrackingMiddleware(BaseHTTPMiddleware):
                     response_size = int(content_length)
         except (ValueError, TypeError):
             response_size = 0
-        
+
         # Extract tokens used from response (if available)
         tokens_used = 0
         cost = 0.0
-        
+
         # Try to extract token usage from response headers or body
         if hasattr(response, "headers") and "X-Tokens-Used" in response.headers:
             tokens_used = int(response.headers.get("X-Tokens-Used", 0))
-        
+
         # Try to get model from response headers
         model = response.headers.get("X-Model-Used", "unknown")
         if tokens_used > 0:
             cost = config.get_llm_cost(model, tokens_used)
-        
+
         # Log usage asynchronously (don't block response)
         if auth_context:
             try:
@@ -107,6 +108,5 @@ class UsageTrackingMiddleware(BaseHTTPMiddleware):
             except Exception as e:
                 # Don't fail request if logging fails
                 pass
-        
-        return response
 
+        return response

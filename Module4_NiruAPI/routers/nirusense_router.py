@@ -2,6 +2,7 @@
 NiruSense Router
 Health, analysis, and document management for the NiruSense processing pipeline
 """
+
 from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
@@ -15,6 +16,7 @@ router = APIRouter(prefix="/nirusense", tags=["NiruSense"])
 # REQUEST/RESPONSE MODELS
 # =============================================================================
 
+
 class DocumentSearchRequest(BaseModel):
     query: str = Field(..., description="Search query text")
     top_k: int = Field(default=10, ge=1, le=100)
@@ -27,17 +29,23 @@ class DocumentSearchRequest(BaseModel):
 class IngestRequest(BaseModel):
     url: str = Field(..., description="Document URL to ingest")
     source: str = Field(default="api", description="Source identifier")
-    text: Optional[str] = Field(default=None, description="Raw text content (skips scraping)")
+    text: Optional[str] = Field(
+        default=None, description="Raw text content (skips scraping)"
+    )
     metadata: Optional[Dict[str, Any]] = Field(default=None)
 
 
 class SchedulerTriggerRequest(BaseModel):
-    job_id: str = Field(..., description="Job ID to trigger: batch_processing, cleanup, metrics, reprocess_failed")
+    job_id: str = Field(
+        ...,
+        description="Job ID to trigger: batch_processing, cleanup, metrics, reprocess_failed",
+    )
 
 
 # =============================================================================
 # STATE CONTAINER
 # =============================================================================
+
 
 class NiruSenseRouterState:
     health_checker = None
@@ -47,12 +55,14 @@ class NiruSenseRouterState:
     settings = None
     orchestrator_running = False
 
+
 _state = NiruSenseRouterState()
 
 
 # =============================================================================
 # HELPERS
 # =============================================================================
+
 
 def _get_health_checker():
     if _state.health_checker is None:
@@ -62,13 +72,16 @@ def _get_health_checker():
 
 def _get_pipeline():
     if _state.pipeline is None:
-        raise HTTPException(status_code=503, detail="NiruSense pipeline not initialized")
+        raise HTTPException(
+            status_code=503, detail="NiruSense pipeline not initialized"
+        )
     return _state.pipeline
 
 
 # =============================================================================
 # HEALTH ENDPOINTS
 # =============================================================================
+
 
 @router.get("/health")
 async def nirusense_health():
@@ -82,9 +95,15 @@ async def nirusense_health():
     except HTTPException:
         raise
     except ImportError as e:
-        return {"status": "unavailable", "error": "NiruSense module not properly configured", "details": str(e)}
+        return {
+            "status": "unavailable",
+            "error": "NiruSense module not properly configured",
+            "details": str(e),
+        }
     except Exception as e:
-        return JSONResponse(status_code=500, content={"status": "error", "error": str(e)})
+        return JSONResponse(
+            status_code=500, content={"status": "error", "error": str(e)}
+        )
 
 
 @router.get("/health/redis")
@@ -135,6 +154,7 @@ async def nirusense_health_agents():
 # METRICS & STATUS
 # =============================================================================
 
+
 @router.get("/metrics")
 async def nirusense_metrics():
     if _state.metrics is None:
@@ -151,6 +171,7 @@ async def nirusense_status():
         raise HTTPException(status_code=503, detail="NiruSense not initialized")
     try:
         import os
+
         return {
             "service": "NiruSense",
             "enabled": os.getenv("ENABLE_NIRUSENSE", "false").lower() == "true",
@@ -158,10 +179,16 @@ async def nirusense_status():
             "agents": {
                 "total": 9,
                 "enabled": [
-                    "language_identifier", "slang_decoder", "topic_classifier",
-                    "entity_extractor", "sentiment_analyzer", "emotion_detector",
-                    "bias_detector", "summarizer", "quality_scorer"
-                ]
+                    "language_identifier",
+                    "slang_decoder",
+                    "topic_classifier",
+                    "entity_extractor",
+                    "sentiment_analyzer",
+                    "emotion_detector",
+                    "bias_detector",
+                    "summarizer",
+                    "quality_scorer",
+                ],
             },
             "models": {
                 "embedding": _state.settings.MODEL_EMBEDDING,
@@ -190,11 +217,13 @@ async def nirusense_status():
 # DOCUMENT SEARCH & RETRIEVAL
 # =============================================================================
 
+
 @router.post("/documents/search")
 async def search_documents(request: DocumentSearchRequest):
     """Search NiruSense-analyzed documents with optional filters"""
     try:
         from Module9_NiruSense.processing.qdrant_search import search_analyzed_documents
+
         results = await search_analyzed_documents(
             query=request.query,
             top_k=request.top_k,
@@ -205,7 +234,9 @@ async def search_documents(request: DocumentSearchRequest):
         )
         return {"results": results, "total": len(results)}
     except ImportError:
-        raise HTTPException(status_code=501, detail="NiruSense document search not available")
+        raise HTTPException(
+            status_code=501, detail="NiruSense document search not available"
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -216,6 +247,7 @@ async def get_document(doc_id: str):
     try:
         from Module9_NiruSense.processing.storage.postgres import postgres
         from Module9_NiruSense.processing.storage.qdrant import qdrant_storage
+
         doc = await postgres.get_document(doc_id)
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found")
@@ -245,6 +277,7 @@ async def get_document_by_url(url: str = Query(..., description="Document URL"))
     """Look up a document by its source URL"""
     try:
         from Module9_NiruSense.processing.storage.postgres import postgres
+
         doc = await postgres.get_document_by_url(url)
         if not doc:
             raise HTTPException(status_code=404, detail="Document not found")
@@ -259,6 +292,7 @@ async def get_document_by_url(url: str = Query(..., description="Document URL"))
 # =============================================================================
 # INGESTION
 # =============================================================================
+
 
 @router.post("/ingest")
 async def ingest_document(request: IngestRequest):
@@ -302,6 +336,7 @@ async def ingest_document(request: IngestRequest):
 # SCHEDULER
 # =============================================================================
 
+
 @router.get("/scheduler")
 async def scheduler_status():
     """Get NiruSense scheduler status"""
@@ -327,7 +362,10 @@ async def trigger_scheduler_job(request: SchedulerTriggerRequest):
         }
         job_fn = job_map.get(request.job_id)
         if not job_fn:
-            raise HTTPException(status_code=400, detail=f"Unknown job: {request.job_id}. Valid: {list(job_map.keys())}")
+            raise HTTPException(
+                status_code=400,
+                detail=f"Unknown job: {request.job_id}. Valid: {list(job_map.keys())}",
+            )
         result = job_fn()
         return {"status": "triggered", "job_id": request.job_id, "result": str(result)}
     except HTTPException:

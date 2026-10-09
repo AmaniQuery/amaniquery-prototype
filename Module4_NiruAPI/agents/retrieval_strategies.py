@@ -40,8 +40,10 @@ logger = logging.getLogger(__name__)
 # NAMESPACE DEFINITIONS
 # ============================================================================
 
+
 class Namespace(str, Enum):
     """Available namespaces in AmaniQuery vector store"""
+
     KENYA_LAW = "kenya_law"
     KENYA_PARLIAMENT = "kenya_parliament"
     KENYA_NEWS = "kenya_news"
@@ -53,7 +55,11 @@ class Namespace(str, Enum):
 PERSONA_NAMESPACES: Dict[str, List[Namespace]] = {
     "wanjiku": [Namespace.KENYA_LAW, Namespace.KENYA_NEWS],
     "wakili": [Namespace.KENYA_LAW, Namespace.KENYA_PARLIAMENT],
-    "mwanahabari": [Namespace.KENYA_PARLIAMENT, Namespace.KENYA_NEWS, Namespace.GLOBAL_TRENDS],
+    "mwanahabari": [
+        Namespace.KENYA_PARLIAMENT,
+        Namespace.KENYA_NEWS,
+        Namespace.GLOBAL_TRENDS,
+    ],
 }
 
 # Document type → Namespace mapping
@@ -71,28 +77,28 @@ DOCTYPE_NAMESPACE: Dict[str, Namespace] = {
 
 # Sheng/Swahili → English mapping for query normalization
 SHENG_ENGLISH_MAP = {
-    'kanjo': 'nairobi city county',
-    'bunge': 'parliament',
-    'mheshimiwa': 'member of parliament MP',
-    'doh': 'money fees',
-    'serikali': 'government',
-    'wabunge': 'members of parliament MPs',
-    'sheria': 'law',
-    'katiba': 'constitution',
-    'korti': 'court',
-    'hakimu': 'magistrate judge',
-    'wakili': 'lawyer advocate',
-    'polisi': 'police',
-    'askari': 'officer guard',
-    'raia': 'citizen',
-    'haki': 'rights justice',
-    'ushuru': 'tax taxes',
-    'kodi': 'tax rent',
-    'ardhi': 'land',
-    'mali': 'property wealth',
-    'biashara': 'business trade',
-    'kazi': 'work employment job',
-    'mishahara': 'salary wages',
+    "kanjo": "nairobi city county",
+    "bunge": "parliament",
+    "mheshimiwa": "member of parliament MP",
+    "doh": "money fees",
+    "serikali": "government",
+    "wabunge": "members of parliament MPs",
+    "sheria": "law",
+    "katiba": "constitution",
+    "korti": "court",
+    "hakimu": "magistrate judge",
+    "wakili": "lawyer advocate",
+    "polisi": "police",
+    "askari": "officer guard",
+    "raia": "citizen",
+    "haki": "rights justice",
+    "ushuru": "tax taxes",
+    "kodi": "tax rent",
+    "ardhi": "land",
+    "mali": "property wealth",
+    "biashara": "business trade",
+    "kazi": "work employment job",
+    "mishahara": "salary wages",
 }
 
 
@@ -100,9 +106,11 @@ SHENG_ENGLISH_MAP = {
 # RETRIEVAL RESULT MODELS
 # ============================================================================
 
+
 @dataclass
 class RetrievalResult:
     """Standardized retrieval result"""
+
     id: str
     text: str
     score: float
@@ -114,9 +122,10 @@ class RetrievalResult:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
-@dataclass  
+@dataclass
 class RetrievalConfig:
     """Configuration for retrieval operations"""
+
     limit: int = 8
     score_threshold: float = 0.5
     recency_boost: float = 1.2
@@ -129,33 +138,34 @@ class RetrievalConfig:
 # MAIN RETRIEVER CLASS
 # ============================================================================
 
+
 class AmaniQueryRetriever:
     """
     Main retriever for AmaniQuery using VectorStore abstraction.
-    
+
     Supports:
     - Multi-namespace queries (searches across multiple collections)
     - Persona-specific retrieval strategies
     - Automatic score boosting (recency, explainer tags)
     - Query normalization (Sheng/Swahili → English)
-    
+
     Example:
         from Module3_NiruDB.vector_store import VectorStore
-        
+
         vs = VectorStore(backend="qdrant")
         retriever = AmaniQueryRetriever(vs)
-        
+
         results = retriever.retrieve_wanjiku("What are my rights during arrest?")
     """
-    
+
     def __init__(
-        self, 
+        self,
         vector_store,  # VectorStore instance
-        default_config: Optional[RetrievalConfig] = None
+        default_config: Optional[RetrievalConfig] = None,
     ):
         """
         Initialize retriever with VectorStore.
-        
+
         Args:
             vector_store: Initialized VectorStore instance
             default_config: Default retrieval configuration
@@ -163,13 +173,15 @@ class AmaniQueryRetriever:
         self.vector_store = vector_store
         self.config = default_config or RetrievalConfig()
         self._executor = ThreadPoolExecutor(max_workers=4)
-        
-        logger.info(f"AmaniQueryRetriever initialized with backend: {vector_store.backend}")
-    
+
+        logger.info(
+            f"AmaniQueryRetriever initialized with backend: {vector_store.backend}"
+        )
+
     # ========================================================================
     # WANJIKU RETRIEVAL (General Citizen)
     # ========================================================================
-    
+
     def retrieve_wanjiku(
         self,
         query: str,
@@ -180,34 +192,34 @@ class AmaniQueryRetriever:
     ) -> List[RetrievalResult]:
         """
         Wanjiku retrieval: Citizen-friendly search with recency boost.
-        
+
         Strategy:
         - Search kenya_law + kenya_news namespaces
         - Normalize Sheng/Swahili queries
         - Boost recent documents (< 6 months)
         - Prioritize explainer/summary content
-        
+
         Args:
             query: User query (can be Sheng/Swahili)
             limit: Max results to return
             recency_months: Boost docs within this timeframe
             namespaces: Override default namespaces
             filter_dict: Additional metadata filters
-            
+
         Returns:
             List of RetrievalResult objects
         """
         # Use persona defaults if namespaces not specified
         if namespaces is None:
             namespaces = PERSONA_NAMESPACES["wanjiku"]
-        
+
         # Normalize query (Sheng → English)
         normalized_query = self._normalize_query(query)
         logger.debug(f"Wanjiku query normalized: '{query}' → '{normalized_query}'")
-        
+
         # Calculate recency cutoff
         recency_cutoff = datetime.now() - timedelta(days=recency_months * 30)
-        
+
         # Search across namespaces
         all_results = []
         for namespace in namespaces:
@@ -216,28 +228,28 @@ class AmaniQueryRetriever:
                     query=normalized_query,
                     namespace=namespace.value,
                     limit=limit * 2,  # Get more for post-processing
-                    filter_dict=filter_dict
+                    filter_dict=filter_dict,
                 )
                 all_results.extend(results)
             except Exception as e:
                 logger.warning(f"Failed to search namespace {namespace.value}: {e}")
-        
+
         # Apply boosts
         boosted_results = self._apply_wanjiku_boosts(
-            all_results, 
+            all_results,
             recency_cutoff,
             recency_boost=self.config.recency_boost,
-            explainer_boost=self.config.explainer_boost
+            explainer_boost=self.config.explainer_boost,
         )
-        
+
         # Sort by boosted score and return top results
         boosted_results.sort(key=lambda x: x.score, reverse=True)
         return boosted_results[:limit]
-    
+
     # ========================================================================
     # WAKILI RETRIEVAL (Legal Professional)
     # ========================================================================
-    
+
     def retrieve_wakili(
         self,
         query: str,
@@ -248,37 +260,37 @@ class AmaniQueryRetriever:
     ) -> List[RetrievalResult]:
         """
         Wakili retrieval: High-precision legal document search.
-        
+
         Strategy:
         - Search kenya_law + kenya_parliament namespaces
         - Filter by legal doc_types (act, bill, judgment, constitution)
         - Include historical (pre-2010) for legal precedents
         - Format citations properly
-        
+
         Args:
             query: Legal query (formal language preferred)
             limit: Max results to return
             doc_types: Filter by document types
             namespaces: Override default namespaces
             include_historical: Include pre-2010 documents
-            
+
         Returns:
             List of RetrievalResult objects with citations
         """
         if namespaces is None:
             namespaces = PERSONA_NAMESPACES["wakili"]
-            
+
         if doc_types is None:
             doc_types = ["constitution", "act", "bill", "judgment", "case_law"]
-        
+
         # Add historical namespace if requested
         search_namespaces = list(namespaces)
         if include_historical and Namespace.HISTORICAL not in search_namespaces:
             search_namespaces.append(Namespace.HISTORICAL)
-        
+
         # Build filter for legal doc types
         filter_dict = {"category": {"$in": doc_types}} if doc_types else None
-        
+
         # Search across namespaces
         all_results = []
         for namespace in search_namespaces:
@@ -287,24 +299,24 @@ class AmaniQueryRetriever:
                     query=query,
                     namespace=namespace.value,
                     limit=limit,
-                    filter_dict=filter_dict
+                    filter_dict=filter_dict,
                 )
                 all_results.extend(results)
             except Exception as e:
                 logger.warning(f"Failed to search namespace {namespace.value}: {e}")
-        
+
         # Add citations to results
         for result in all_results:
             result.citation = self._build_citation(result)
-        
+
         # Sort by score and return top results
         all_results.sort(key=lambda x: x.score, reverse=True)
         return all_results[:limit]
-    
+
     # ========================================================================
     # MWANAHABARI RETRIEVAL (Journalist/Data Analyst)
     # ========================================================================
-    
+
     def retrieve_mwanahabari(
         self,
         query: str,
@@ -317,12 +329,12 @@ class AmaniQueryRetriever:
     ) -> List[RetrievalResult]:
         """
         Mwanahabari retrieval: Data-focused search for journalists.
-        
+
         Strategy:
         - Search kenya_parliament + kenya_news + global_trends namespaces
         - Strong metadata filtering (dates, MPs, committees)
         - Prioritize documents with tables/statistics
-        
+
         Args:
             query: Data-focused query
             limit: Max results to return
@@ -331,21 +343,21 @@ class AmaniQueryRetriever:
             mp_name: Filter by MP name
             committee: Filter by parliamentary committee
             namespaces: Override default namespaces
-            
+
         Returns:
             List of data-rich RetrievalResult objects
         """
         if namespaces is None:
             namespaces = PERSONA_NAMESPACES["mwanahabari"]
-        
+
         # Build complex filter
         filter_dict = {}
-        
+
         if mp_name:
             filter_dict["mp_name"] = mp_name
         if committee:
             filter_dict["committee"] = committee
-        
+
         # Search across namespaces
         all_results = []
         for namespace in namespaces:
@@ -354,40 +366,40 @@ class AmaniQueryRetriever:
                     query=query,
                     namespace=namespace.value,
                     limit=limit,
-                    filter_dict=filter_dict if filter_dict else None
+                    filter_dict=filter_dict if filter_dict else None,
                 )
                 all_results.extend(results)
             except Exception as e:
                 logger.warning(f"Failed to search namespace {namespace.value}: {e}")
-        
+
         # Apply date filtering (post-search since VectorStore doesn't support range)
         if date_from or date_to:
             all_results = self._filter_by_date_range(all_results, date_from, date_to)
-        
+
         # Sort by score and return top results
         all_results.sort(key=lambda x: x.score, reverse=True)
         return all_results[:limit]
-    
+
     # ========================================================================
     # UNIFIED RETRIEVE METHOD
     # ========================================================================
-    
+
     def retrieve(
         self,
         query: str,
         persona: Literal["wanjiku", "wakili", "mwanahabari"] = "wanjiku",
         limit: int = 8,
-        **kwargs
+        **kwargs,
     ) -> List[RetrievalResult]:
         """
         Unified retrieval method that routes to persona-specific strategy.
-        
+
         Args:
             query: Search query
             persona: User persona (wanjiku, wakili, mwanahabari)
             limit: Max results
             **kwargs: Persona-specific arguments
-            
+
         Returns:
             List of RetrievalResult objects
         """
@@ -399,25 +411,24 @@ class AmaniQueryRetriever:
             return self.retrieve_mwanahabari(query, limit=limit, **kwargs)
         else:
             raise ValueError(f"Unknown persona: {persona}")
-    
+
     # ========================================================================
     # ASYNC RETRIEVAL METHODS
     # ========================================================================
-    
+
     async def aretrieve(
         self,
         query: str,
         persona: Literal["wanjiku", "wakili", "mwanahabari"] = "wanjiku",
         limit: int = 8,
-        **kwargs
+        **kwargs,
     ) -> List[RetrievalResult]:
         """Async version of retrieve"""
         loop = asyncio.get_event_loop()
         return await loop.run_in_executor(
-            self._executor,
-            lambda: self.retrieve(query, persona, limit, **kwargs)
+            self._executor, lambda: self.retrieve(query, persona, limit, **kwargs)
         )
-    
+
     async def aretrieve_multi_persona(
         self,
         query: str,
@@ -426,40 +437,40 @@ class AmaniQueryRetriever:
     ) -> Dict[str, List[RetrievalResult]]:
         """
         Retrieve from multiple personas in parallel.
-        
+
         Useful for comprehensive research queries.
         """
         tasks = [
-            self.aretrieve(query, persona=p if p in ["wanjiku", "wakili", "mwanahabari"] else "wanjiku", limit=limit_per_persona)
+            self.aretrieve(
+                query,
+                persona=p if p in ["wanjiku", "wakili", "mwanahabari"] else "wanjiku",
+                limit=limit_per_persona,
+            )
             for p in personas
         ]
         results = await asyncio.gather(*tasks, return_exceptions=True)
-        
+
         return {
             persona: result if isinstance(result, list) else []
             for persona, result in zip(personas, results)
         }
-    
+
     # ========================================================================
     # INTERNAL HELPER METHODS
     # ========================================================================
-    
+
     def _search_namespace(
-        self,
-        query: str,
-        namespace: str,
-        limit: int,
-        filter_dict: Optional[Dict] = None
+        self, query: str, namespace: str, limit: int, filter_dict: Optional[Dict] = None
     ) -> List[RetrievalResult]:
         """
         Search a single namespace using VectorStore.query()
-        
+
         Args:
             query: Search query text
             namespace: Namespace to search
             limit: Max results
             filter_dict: Metadata filters
-            
+
         Returns:
             List of RetrievalResult objects
         """
@@ -469,31 +480,35 @@ class AmaniQueryRetriever:
                 query_text=query,
                 n_results=limit,
                 filter=filter_dict,
-                namespace=namespace
+                namespace=namespace,
             )
-            
+
             # Convert to RetrievalResult objects
             results = []
             for r in raw_results:
                 metadata = r.get("metadata", {})
-                results.append(RetrievalResult(
-                    id=r.get("id", ""),
-                    text=r.get("text", ""),
-                    score=r.get("distance", 0.0),  # VectorStore returns distance
-                    source=metadata.get("source_name", metadata.get("source_url", "")),
-                    namespace=namespace,
-                    doc_type=metadata.get("category", ""),
-                    date_published=metadata.get("publication_date"),
-                    metadata=metadata
-                ))
-            
+                results.append(
+                    RetrievalResult(
+                        id=r.get("id", ""),
+                        text=r.get("text", ""),
+                        score=r.get("distance", 0.0),  # VectorStore returns distance
+                        source=metadata.get(
+                            "source_name", metadata.get("source_url", "")
+                        ),
+                        namespace=namespace,
+                        doc_type=metadata.get("category", ""),
+                        date_published=metadata.get("publication_date"),
+                        metadata=metadata,
+                    )
+                )
+
             logger.debug(f"Namespace {namespace}: found {len(results)} results")
             return results
-            
+
         except Exception as e:
             logger.error(f"Error searching namespace {namespace}: {e}")
             return []
-    
+
     def _normalize_query(self, query: str) -> str:
         """
         Normalize Sheng/Swahili query to English for better retrieval.
@@ -503,23 +518,23 @@ class AmaniQueryRetriever:
             if sheng in normalized:
                 normalized = normalized.replace(sheng, english)
         return normalized
-    
+
     def _apply_wanjiku_boosts(
         self,
         results: List[RetrievalResult],
         recency_cutoff: datetime,
         recency_boost: float = 1.2,
-        explainer_boost: float = 1.15
+        explainer_boost: float = 1.15,
     ) -> List[RetrievalResult]:
         """
         Apply score boosts for Wanjiku persona.
-        
+
         - Recent documents get recency_boost
         - Explainer/summary content gets explainer_boost
         """
         for result in results:
             boost = 1.0
-            
+
             # Recency boost
             if result.date_published:
                 try:
@@ -529,98 +544,102 @@ class AmaniQueryRetriever:
                         boost *= recency_boost
                 except Exception:
                     pass
-            
+
             # Explainer boost
             tags = result.metadata.get("metadata_tags", [])
-            if isinstance(tags, list) and any(t in tags for t in ["explainer", "summary", "guide"]):
+            if isinstance(tags, list) and any(
+                t in tags for t in ["explainer", "summary", "guide"]
+            ):
                 boost *= explainer_boost
-            
+
             # Also check title/category for explainer content
             title = result.metadata.get("title", "").lower()
-            if any(word in title for word in ["explained", "guide", "how to", "what is"]):
+            if any(
+                word in title for word in ["explained", "guide", "how to", "what is"]
+            ):
                 boost *= 1.1
-            
+
             result.score *= boost
-        
+
         return results
-    
+
     def _filter_by_date_range(
         self,
         results: List[RetrievalResult],
         date_from: Optional[datetime],
-        date_to: Optional[datetime]
+        date_to: Optional[datetime],
     ) -> List[RetrievalResult]:
         """Filter results by date range"""
         filtered = []
         for result in results:
             if not result.date_published:
                 continue
-                
+
             doc_date = self._parse_date(result.date_published)
             if not doc_date:
                 continue
-            
+
             if date_from and doc_date < date_from:
                 continue
             if date_to and doc_date > date_to:
                 continue
-            
+
             filtered.append(result)
-        
+
         return filtered
-    
+
     def _parse_date(self, date_str: str) -> Optional[datetime]:
         """Parse date string to datetime"""
         if not date_str:
             return None
-            
+
         import re
-        
+
         # Try ISO format first
         try:
-            return datetime.fromisoformat(date_str.replace('Z', '+00:00').split('T')[0])
+            return datetime.fromisoformat(date_str.replace("Z", "+00:00").split("T")[0])
         except ValueError:
             pass
-        
+
         # Try extracting year
-        year_match = re.search(r'(\d{4})', date_str)
+        year_match = re.search(r"(\d{4})", date_str)
         if year_match:
             try:
                 return datetime(int(year_match.group(1)), 1, 1)
             except ValueError:
                 pass
-        
+
         return None
-    
+
     def _build_citation(self, result: RetrievalResult) -> str:
         """Build proper legal citation from result"""
         doc_type = result.doc_type.lower()
         source = result.source
         metadata = result.metadata
-        
+
         if doc_type == "constitution":
             article = metadata.get("article_number", metadata.get("section_number", ""))
             if article:
                 return f"Constitution of Kenya, 2010, Article {article}"
             return "Constitution of Kenya, 2010"
-        
+
         elif doc_type in ["act", "legislation"]:
             section = metadata.get("section_number", "")
             title = metadata.get("title", source)
             if section:
                 return f"{title}, Section {section}"
             return title
-        
+
         elif doc_type == "bill":
             return f"{metadata.get('title', source)} (Bill)"
-        
+
         elif doc_type in ["judgment", "case_law"]:
             return source or metadata.get("title", "Case Law")
-        
+
         elif doc_type == "hansard":
             date = metadata.get("publication_date", "")
             return f"Kenya Hansard, {date}"
-        
+
         else:
             return source or metadata.get("title", "")
 
@@ -629,30 +648,27 @@ class AmaniQueryRetriever:
 # CONVENIENCE FACTORY FUNCTION
 # ============================================================================
 
+
 def create_retriever(
-    backend: str = "auto",
-    collection_name: str = "amaniquery_docs",
-    config_manager = None
+    backend: str = "auto", collection_name: str = "amaniquery_docs", config_manager=None
 ) -> AmaniQueryRetriever:
     """
     Factory function to create retriever with VectorStore.
-    
+
     Args:
         backend: Vector store backend ('auto', 'qdrant', 'chromadb', 'upstash')
         collection_name: Collection name
         config_manager: Optional ConfigManager for credentials
-        
+
     Returns:
         Configured AmaniQueryRetriever instance
     """
     from Module3_NiruDB.vector_store import VectorStore
-    
+
     vector_store = VectorStore(
-        backend=backend,
-        collection_name=collection_name,
-        config_manager=config_manager
+        backend=backend, collection_name=collection_name, config_manager=config_manager
     )
-    
+
     return AmaniQueryRetriever(vector_store)
 
 
@@ -661,10 +677,10 @@ def create_retriever(
 # ============================================================================
 
 if __name__ == "__main__":
-    print("="*80)
+    print("=" * 80)
     print("RETRIEVAL STRATEGIES - USAGE EXAMPLES")
-    print("="*80)
-    
+    print("=" * 80)
+
     print("""
     # Basic Usage
     from Module4_NiruAPI.agents.retrieval_strategies import create_retriever
@@ -712,15 +728,15 @@ if __name__ == "__main__":
     
     all_results = asyncio.run(search())
     """)
-    
-    print("\n" + "="*80)
+
+    print("\n" + "=" * 80)
     print("NAMESPACES AVAILABLE:")
     for ns in Namespace:
         print(f"  - {ns.value}")
-    
+
     print("\nPERSONA NAMESPACE MAPPINGS:")
     for persona, namespaces in PERSONA_NAMESPACES.items():
         ns_list = [ns.value for ns in namespaces]
         print(f"  - {persona}: {ns_list}")
-    
-    print("="*80)
+
+    print("=" * 80)

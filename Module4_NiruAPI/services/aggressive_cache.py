@@ -2,6 +2,7 @@
 Aggressive Semantic Cache — maximizes cache hit rate with query normalization,
 lowered similarity thresholds, embedding integration, and auto-write on response.
 """
+
 import os
 import re
 import time
@@ -14,21 +15,122 @@ from collections import OrderedDict
 from loguru import logger
 from dataclasses import dataclass, field
 
-
 STOP_WORDS = {
-    "a", "an", "the", "is", "are", "was", "were", "be", "been", "being",
-    "have", "has", "had", "do", "does", "did", "will", "would", "could",
-    "should", "may", "might", "shall", "can", "need", "dare", "ought",
-    "used", "to", "of", "in", "for", "on", "with", "at", "by", "from",
-    "as", "into", "through", "during", "before", "after", "above", "below",
-    "between", "out", "off", "over", "under", "again", "further", "then",
-    "once", "here", "there", "when", "where", "why", "how", "all", "each",
-    "every", "both", "few", "more", "most", "other", "some", "such", "no",
-    "nor", "not", "only", "own", "same", "so", "than", "too", "very",
-    "just", "because", "but", "and", "or", "if", "while", "although",
-    "what", "which", "who", "whom", "this", "that", "these", "those",
-    "it", "its", "i", "me", "my", "we", "our", "you", "your", "he", "she",
-    "they", "them", "his", "her", "their", "please", "tell", "about",
+    "a",
+    "an",
+    "the",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "will",
+    "would",
+    "could",
+    "should",
+    "may",
+    "might",
+    "shall",
+    "can",
+    "need",
+    "dare",
+    "ought",
+    "used",
+    "to",
+    "of",
+    "in",
+    "for",
+    "on",
+    "with",
+    "at",
+    "by",
+    "from",
+    "as",
+    "into",
+    "through",
+    "during",
+    "before",
+    "after",
+    "above",
+    "below",
+    "between",
+    "out",
+    "off",
+    "over",
+    "under",
+    "again",
+    "further",
+    "then",
+    "once",
+    "here",
+    "there",
+    "when",
+    "where",
+    "why",
+    "how",
+    "all",
+    "each",
+    "every",
+    "both",
+    "few",
+    "more",
+    "most",
+    "other",
+    "some",
+    "such",
+    "no",
+    "nor",
+    "not",
+    "only",
+    "own",
+    "same",
+    "so",
+    "than",
+    "too",
+    "very",
+    "just",
+    "because",
+    "but",
+    "and",
+    "or",
+    "if",
+    "while",
+    "although",
+    "what",
+    "which",
+    "who",
+    "whom",
+    "this",
+    "that",
+    "these",
+    "those",
+    "it",
+    "its",
+    "i",
+    "me",
+    "my",
+    "we",
+    "our",
+    "you",
+    "your",
+    "he",
+    "she",
+    "they",
+    "them",
+    "his",
+    "her",
+    "their",
+    "please",
+    "tell",
+    "about",
 }
 
 
@@ -91,6 +193,7 @@ PREDICTIVE_QUERIES = [
 @dataclass
 class CacheEntry:
     """Single cache entry with metadata for frequency-based promotion."""
+
     query: str
     normalized: str
     result: Any
@@ -150,9 +253,8 @@ class AggressiveSemanticCache:
                 return self._embedding_model
             try:
                 from sentence_transformers import SentenceTransformer
-                model_name = os.getenv(
-                    "EMBEDDING_MODEL", "all-MiniLM-L6-v2"
-                )
+
+                model_name = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
                 logger.info(f"Loading embedding model for cache: {model_name}")
                 self._embedding_model = SentenceTransformer(model_name)
             except Exception as e:
@@ -176,10 +278,30 @@ class AggressiveSemanticCache:
 
     def _is_legal_query(self, query: str) -> bool:
         q = query.lower()
-        kw = {"constitution", "article", "act", "bill", "law", "legal",
-              "court", "rights", "section", "clause", "statute", "judgment",
-              "penalty", "offence", "offense", "marriage", "divorce",
-              "tenancy", "lease", "contract", "tort", "litigation"}
+        kw = {
+            "constitution",
+            "article",
+            "act",
+            "bill",
+            "law",
+            "legal",
+            "court",
+            "rights",
+            "section",
+            "clause",
+            "statute",
+            "judgment",
+            "penalty",
+            "offence",
+            "offense",
+            "marriage",
+            "divorce",
+            "tenancy",
+            "lease",
+            "contract",
+            "tort",
+            "litigation",
+        }
         return any(k in q for k in kw)
 
     def _get_ttl(self, query: str) -> int:
@@ -231,7 +353,8 @@ class AggressiveSemanticCache:
         query_emb = self._embed(query)
         if query_emb is not None:
             threshold = (
-                self.legal_threshold if self._is_legal_query(query)
+                self.legal_threshold
+                if self._is_legal_query(query)
                 else self.semantic_threshold
             )
             with self._lock:
@@ -304,11 +427,13 @@ class AggressiveSemanticCache:
                 if entry.embedding is None:
                     continue
                 score = self._cosine_sim(query_emb, entry.embedding)
-                results.append({
-                    "query": entry.query,
-                    "score": score,
-                    "access_count": entry.access_count,
-                })
+                results.append(
+                    {
+                        "query": entry.query,
+                        "score": score,
+                        "access_count": entry.access_count,
+                    }
+                )
 
         results.sort(key=lambda x: x["score"], reverse=True)
         return results[:top_k]
@@ -333,8 +458,11 @@ class AggressiveSemanticCache:
     def get_stats(self) -> Dict[str, Any]:
         with self._lock:
             total = self.stats["total"] or 1
-            hits = (self.stats["exact_hits"] + self.stats["normalized_hits"]
-                    + self.stats["semantic_hits"])
+            hits = (
+                self.stats["exact_hits"]
+                + self.stats["normalized_hits"]
+                + self.stats["semantic_hits"]
+            )
             return {
                 **self.stats,
                 "hit_rate": hits / total,

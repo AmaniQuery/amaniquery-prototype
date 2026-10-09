@@ -25,7 +25,6 @@ import re
 from typing import Dict, Any, List, Optional, Literal
 from datetime import datetime
 
-
 # ============================================================================
 # UNIFIED JSON SCHEMA (STRICT)
 # ============================================================================
@@ -36,24 +35,24 @@ RESPONSE_SCHEMA = {
     "response": {
         "summary_card": {
             "title": "string (max 100 chars, clear headline)",
-            "content": "string (2-3 sentences, core answer)"
+            "content": "string (2-3 sentences, core answer)",
         },
         "detailed_breakdown": {
             "points": ["string array (3-7 bullet points with specifics)"]
         },
         "kenyan_context": {
             "impact": "string (how this affects Kenyans practically)",
-            "related_topic": "string | null (related civic topic if relevant)"
+            "related_topic": "string | null (related civic topic if relevant)",
         },
         "citations": [
             {
                 "source": "string (name of source)",
                 "url": "string (URL or 'N/A' if not applicable)",
-                "quote": "string | null (exact quote or key excerpt)"
+                "quote": "string | null (exact quote or key excerpt)",
             }
-        ]
+        ],
     },
-    "follow_up_suggestions": ["string array (exactly 3 natural follow-up questions)"]
+    "follow_up_suggestions": ["string array (exactly 3 natural follow-up questions)"],
 }
 
 
@@ -358,16 +357,17 @@ Your response MUST start with { and end with }
 # VALIDATION FUNCTIONS
 # ============================================================================
 
+
 def validate_response(response: Dict[str, Any]) -> tuple[bool, Optional[str]]:
     """
     Validates that response matches the strict schema.
-    
+
     Args:
         response: Parsed JSON response from LLM
-        
+
     Returns:
         (is_valid, error_message)
-        
+
     Example:
         >>> valid, error = validate_response(llm_output)
         >>> if not valid:
@@ -375,63 +375,79 @@ def validate_response(response: Dict[str, Any]) -> tuple[bool, Optional[str]]:
     """
     try:
         # Check top-level fields
-        required_top_level = ["query_type", "language_detected", "response", "follow_up_suggestions"]
+        required_top_level = [
+            "query_type",
+            "language_detected",
+            "response",
+            "follow_up_suggestions",
+        ]
         for field in required_top_level:
             if field not in response:
                 return False, f"Missing required field: {field}"
-        
+
         # Validate query_type
         valid_types = ["public_interest", "legal", "research"]
         if response["query_type"] not in valid_types:
-            return False, f"Invalid query_type: {response['query_type']}. Must be one of {valid_types}"
-        
+            return (
+                False,
+                f"Invalid query_type: {response['query_type']}. Must be one of {valid_types}",
+            )
+
         # Validate language_detected
         if not isinstance(response["language_detected"], str):
             return False, "language_detected must be a string"
-        
+
         # Validate response object
         resp = response["response"]
-        required_response_fields = ["summary_card", "detailed_breakdown", "kenyan_context", "citations"]
+        required_response_fields = [
+            "summary_card",
+            "detailed_breakdown",
+            "kenyan_context",
+            "citations",
+        ]
         for field in required_response_fields:
             if field not in resp:
                 return False, f"Missing response.{field}"
-        
+
         # Validate summary_card
         if "title" not in resp["summary_card"] or "content" not in resp["summary_card"]:
             return False, "summary_card must have 'title' and 'content'"
-        
+
         if len(resp["summary_card"]["title"]) > 100:
             return False, "summary_card.title must be max 100 characters"
-        
+
         # Validate detailed_breakdown
         if "points" not in resp["detailed_breakdown"]:
             return False, "detailed_breakdown must have 'points' array"
-        
+
         points = resp["detailed_breakdown"]["points"]
         if not isinstance(points, list) or len(points) < 3 or len(points) > 7:
             return False, "detailed_breakdown.points must be array of 3-7 items"
-        
+
         # Validate kenyan_context
         if "impact" not in resp["kenyan_context"]:
             return False, "kenyan_context must have 'impact'"
-        
+
         # Validate citations
         if not isinstance(resp["citations"], list) or len(resp["citations"]) < 1:
             return False, "citations must be array with at least 1 item"
-        
+
         for idx, citation in enumerate(resp["citations"]):
             if "source" not in citation or "url" not in citation:
                 return False, f"Citation {idx} missing 'source' or 'url'"
-        
+
         # Validate follow_up_suggestions
         if not isinstance(response["follow_up_suggestions"], list):
             return False, "follow_up_suggestions must be array"
-        
+
         if len(response["follow_up_suggestions"]) != 3:
-            return False, f"follow_up_suggestions must have exactly 3 items, got {len(response['follow_up_suggestions'])}"
-        
+            return (
+                False,
+                f"follow_up_suggestions must have exactly 3 items, got {len(response['follow_up_suggestions'])}",
+            )
+
         return True, None
-    
+
     except Exception as e:
         return False, f"Validation exception: {str(e)}"
 
@@ -439,13 +455,13 @@ def validate_response(response: Dict[str, Any]) -> tuple[bool, Optional[str]]:
 def parse_llm_response(raw_response: str) -> tuple[Optional[Dict], Optional[str]]:
     """
     Parses LLM response and extracts JSON, handling common issues.
-    
+
     Args:
         raw_response: Raw string output from LLM
-        
+
     Returns:
         (parsed_json, error_message)
-        
+
     Example:
         >>> json_obj, error = parse_llm_response(llm.generate(prompt))
         >>> if error:
@@ -454,37 +470,37 @@ def parse_llm_response(raw_response: str) -> tuple[Optional[Dict], Optional[str]
     try:
         # Remove markdown code blocks if present
         cleaned = raw_response.strip()
-        
+
         # Remove ```json and ``` markers
         if cleaned.startswith("```json"):
             cleaned = cleaned[7:]
         elif cleaned.startswith("```"):
             cleaned = cleaned[3:]
-        
+
         if cleaned.endswith("```"):
             cleaned = cleaned[:-3]
-        
+
         cleaned = cleaned.strip()
-        
+
         # Extract JSON from text (find first { to last })
         start_idx = cleaned.find("{")
         end_idx = cleaned.rfind("}")
-        
+
         if start_idx == -1 or end_idx == -1:
             return None, "No JSON object found in response"
-        
-        json_str = cleaned[start_idx:end_idx+1]
-        
+
+        json_str = cleaned[start_idx : end_idx + 1]
+
         # Parse JSON
         parsed = json.loads(json_str)
-        
+
         # Validate schema
         is_valid, error = validate_response(parsed)
         if not is_valid:
             return None, f"Schema validation failed: {error}"
-        
+
         return parsed, None
-    
+
     except json.JSONDecodeError as e:
         return None, f"JSON decode error: {str(e)}"
     except Exception as e:
@@ -492,21 +508,19 @@ def parse_llm_response(raw_response: str) -> tuple[Optional[Dict], Optional[str]
 
 
 def get_json_enforcement_prompt(
-    user_query: str,
-    retrieved_context: str,
-    persona_hint: Optional[str] = None
+    user_query: str, retrieved_context: str, persona_hint: Optional[str] = None
 ) -> str:
     """
     Constructs complete prompt with JSON enforcement for LLM.
-    
+
     Args:
         user_query: User's original query
         retrieved_context: Context from RAG retrieval
         persona_hint: Optional hint about persona (public_interest/legal/research)
-        
+
     Returns:
         Complete prompt string ready for LLM
-        
+
     Example:
         >>> prompt = get_json_enforcement_prompt(
         ...     "Kanjo wameongeza parking fees?",
@@ -520,10 +534,12 @@ def get_json_enforcement_prompt(
         persona_map = {
             "public_interest": "This is a public_interest query (ordinary citizen/wanjiku)",
             "legal": "This is a legal query (legal professional/wakili)",
-            "research": "This is a research query (journalist/mwanahabari)"
+            "research": "This is a research query (journalist/mwanahabari)",
         }
-        persona_guidance = f"\n<PERSONA_HINT>\n{persona_map.get(persona_hint, '')}\n</PERSONA_HINT>\n"
-    
+        persona_guidance = (
+            f"\n<PERSONA_HINT>\n{persona_map.get(persona_hint, '')}\n</PERSONA_HINT>\n"
+        )
+
     full_prompt = f"""{JSON_ENFORCEMENT_PROMPT}
 
 {persona_guidance}
@@ -537,7 +553,7 @@ def get_json_enforcement_prompt(
 
 <OUTPUT>
 """
-    
+
     return full_prompt
 
 
@@ -545,29 +561,28 @@ def get_json_enforcement_prompt(
 # INTEGRATION HELPERS
 # ============================================================================
 
+
 def map_persona_to_query_type(persona: str) -> str:
     """Maps intent router personas to query_type values"""
     mapping = {
         "wanjiku": "public_interest",
         "wakili": "legal",
-        "mwanahabari": "research"
+        "mwanahabari": "research",
     }
     return mapping.get(persona, "public_interest")
 
 
 def retry_with_enforcement(
-    llm_function: callable,
-    prompt: str,
-    max_retries: int = 3
+    llm_function: callable, prompt: str, max_retries: int = 3
 ) -> tuple[Optional[Dict], Optional[str]]:
     """
     Retries LLM call with increasingly strict enforcement.
-    
+
     Args:
         llm_function: LLM callable
         prompt: The prompt to send
         max_retries: Maximum retry attempts
-        
+
     Returns:
         (parsed_json, error_message)
     """
@@ -575,18 +590,18 @@ def retry_with_enforcement(
         try:
             raw_response = llm_function(prompt)
             parsed, error = parse_llm_response(raw_response)
-            
+
             if parsed:
                 return parsed, None
-            
+
             # Add stronger enforcement for retry
             if attempt < max_retries - 1:
                 prompt += f"\n\n<RETRY_NOTICE>Previous attempt {attempt+1} failed validation: {error}. OUTPUT ONLY VALID JSON.</RETRY_NOTICE>"
-        
+
         except Exception as e:
             if attempt == max_retries - 1:
                 return None, f"All {max_retries} attempts failed. Last error: {str(e)}"
-    
+
     return None, "Max retries exceeded"
 
 
@@ -595,72 +610,68 @@ def retry_with_enforcement(
 # ============================================================================
 
 if __name__ == "__main__":
-    print("="*80)
+    print("=" * 80)
     print("JSON ENFORCER - SCHEMA VALIDATION")
-    print("="*80)
-    
+    print("=" * 80)
+
     # Test Example 1 (Public Interest)
     print("\n📋 EXAMPLE 1: PUBLIC INTEREST (Wanjiku)")
-    print("-"*80)
-    
+    print("-" * 80)
+
     example1 = {
         "query_type": "public_interest",
         "language_detected": "sheng",
         "response": {
-            "summary_card": {
-                "title": "Test Title",
-                "content": "Test content."
-            },
-            "detailed_breakdown": {
-                "points": ["Point 1", "Point 2", "Point 3"]
-            },
-            "kenyan_context": {
-                "impact": "Test impact",
-                "related_topic": None
-            },
-            "citations": [
-                {"source": "Test Source", "url": "N/A", "quote": None}
-            ]
+            "summary_card": {"title": "Test Title", "content": "Test content."},
+            "detailed_breakdown": {"points": ["Point 1", "Point 2", "Point 3"]},
+            "kenyan_context": {"impact": "Test impact", "related_topic": None},
+            "citations": [{"source": "Test Source", "url": "N/A", "quote": None}],
         },
-        "follow_up_suggestions": ["Q1?", "Q2?", "Q3?"]
+        "follow_up_suggestions": ["Q1?", "Q2?", "Q3?"],
     }
-    
+
     valid, error = validate_response(example1)
     print(f"Valid: {valid}")
     if error:
         print(f"Error: {error}")
-    
+
     # Test schema violation
     print("\n❌ TESTING SCHEMA VIOLATIONS")
-    print("-"*80)
-    
+    print("-" * 80)
+
     invalid_examples = [
         ({**example1, "query_type": "invalid_type"}, "Invalid query_type"),
-        ({**example1, "follow_up_suggestions": ["Q1", "Q2"]}, "Wrong number of suggestions"),
-        ({**example1, "response": {**example1["response"], "citations": []}}, "Empty citations")
+        (
+            {**example1, "follow_up_suggestions": ["Q1", "Q2"]},
+            "Wrong number of suggestions",
+        ),
+        (
+            {**example1, "response": {**example1["response"], "citations": []}},
+            "Empty citations",
+        ),
     ]
-    
+
     for invalid_ex, desc in invalid_examples:
         valid, error = validate_response(invalid_ex)
         print(f"\n{desc}:")
         print(f"  Valid: {valid}")
         print(f"  Error: {error}")
-    
+
     # Test prompt generation
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("PROMPT GENERATION TEST")
-    print("="*80)
-    
+    print("=" * 80)
+
     test_prompt = get_json_enforcement_prompt(
         user_query="Kanjo wameongeza parking fees?",
         retrieved_context="Resolution 42/2024 increased fees to KES 300",
-        persona_hint="public_interest"
+        persona_hint="public_interest",
     )
-    
+
     print(f"\nGenerated prompt length: {len(test_prompt)} characters")
     print(f"Estimated tokens: ~{len(test_prompt.split()) // 0.75:.0f}")
     print(f"\nFirst 500 chars:\n{test_prompt[:500]}...")
-    
-    print("\n" + "="*80)
+
+    print("\n" + "=" * 80)
     print("ALL VALIDATION TESTS COMPLETE")
-    print("="*80)
+    print("=" * 80)

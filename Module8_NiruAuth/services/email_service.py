@@ -2,6 +2,7 @@
 Email Service for sending emails via Gmail SMTP
 Handles email verification, password reset, and general notifications
 """
+
 import smtplib
 import ssl
 from email.mime.text import MIMEText
@@ -16,18 +17,18 @@ logger = logging.getLogger(__name__)
 
 class EmailService:
     """Service for sending emails via Gmail SMTP"""
-    
+
     def __init__(
         self,
         smtp_server: str = "smtp.gmail.com",
         smtp_port: int = 587,
         sender_email: str = "amaniquery@gmail.com",
         sender_password: Optional[str] = None,
-        sender_name: str = "AmaniQuery"
+        sender_name: str = "AmaniQuery",
     ):
         """
         Initialize email service
-        
+
         Args:
             smtp_server: SMTP server address (default: smtp.gmail.com)
             smtp_port: SMTP port (default: 587 for TLS)
@@ -40,51 +41,53 @@ class EmailService:
         self.sender_email = sender_email
         self.sender_password = sender_password or os.getenv("GMAIL_APP_PASSWORD")
         self.sender_name = sender_name
-        
+
         if not self.sender_password:
-            logger.warning("Gmail app password not configured. Email sending will fail.")
-    
+            logger.warning(
+                "Gmail app password not configured. Email sending will fail."
+            )
+
     def _create_message(
         self,
         to_email: str,
         subject: str,
         html_body: str,
-        text_body: Optional[str] = None
+        text_body: Optional[str] = None,
     ) -> MIMEMultipart:
         """Create email message"""
         message = MIMEMultipart("alternative")
         message["Subject"] = subject
         message["From"] = f"{self.sender_name} <{self.sender_email}>"
         message["To"] = to_email
-        
+
         # Add text and HTML parts
         if text_body:
             text_part = MIMEText(text_body, "plain")
             message.attach(text_part)
-        
+
         html_part = MIMEText(html_body, "html")
         message.attach(html_part)
-        
+
         return message
-    
+
     def _send_email(self, message: MIMEMultipart, to_email: str) -> bool:
         """Send email via SMTP"""
         if not self.sender_password:
             logger.error("Cannot send email: Gmail app password not configured")
             return False
-        
+
         try:
             # Create secure connection
             context = ssl.create_default_context()
-            
+
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
                 server.starttls(context=context)
                 server.login(self.sender_email, self.sender_password)
                 server.send_message(message)
-            
+
             logger.info(f"Email sent successfully to {to_email}")
             return True
-            
+
         except smtplib.SMTPAuthenticationError as e:
             logger.error(f"SMTP authentication failed: {e}")
             return False
@@ -94,16 +97,16 @@ class EmailService:
         except Exception as e:
             logger.error(f"Failed to send email to {to_email}: {e}")
             return False
-    
+
     def send_verification_email(
         self,
         to_email: str,
         verification_token: str,
-        verification_url: Optional[str] = None
+        verification_url: Optional[str] = None,
     ) -> bool:
         """
         Send email verification email
-        
+
         Args:
             to_email: Recipient email address
             verification_token: Email verification token
@@ -112,10 +115,12 @@ class EmailService:
         if not verification_url:
             # Default verification URL format
             base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
-            verification_url = f"{base_url}/auth/verify-email?token={verification_token}"
-        
+            verification_url = (
+                f"{base_url}/auth/verify-email?token={verification_token}"
+            )
+
         subject = "Verify Your AmaniQuery Email Address"
-        
+
         html_body = f"""
         <!DOCTYPE html>
         <html>
@@ -145,7 +150,7 @@ class EmailService:
         </body>
         </html>
         """
-        
+
         text_body = f"""
         Verify Your Email Address
         
@@ -159,19 +164,16 @@ class EmailService:
         
         © {datetime.now().year} AmaniQuery. All rights reserved.
         """
-        
+
         message = self._create_message(to_email, subject, html_body, text_body)
         return self._send_email(message, to_email)
-    
+
     def send_password_reset_email(
-        self,
-        to_email: str,
-        reset_token: str,
-        reset_url: Optional[str] = None
+        self, to_email: str, reset_token: str, reset_url: Optional[str] = None
     ) -> bool:
         """
         Send password reset email
-        
+
         Args:
             to_email: Recipient email address
             reset_token: Password reset token
@@ -180,9 +182,9 @@ class EmailService:
         if not reset_url:
             base_url = os.getenv("FRONTEND_URL", "http://localhost:3000")
             reset_url = f"{base_url}/auth/reset-password?token={reset_token}"
-        
+
         subject = "Reset Your AmaniQuery Password"
-        
+
         html_body = f"""
         <!DOCTYPE html>
         <html>
@@ -212,7 +214,7 @@ class EmailService:
         </body>
         </html>
         """
-        
+
         text_body = f"""
         Reset Your Password
         
@@ -226,20 +228,20 @@ class EmailService:
         
         © {datetime.now().year} AmaniQuery. All rights reserved.
         """
-        
+
         message = self._create_message(to_email, subject, html_body, text_body)
         return self._send_email(message, to_email)
-    
+
     def send_notification_email(
         self,
         to_email: str,
         subject: str,
         message: str,
-        html_message: Optional[str] = None
+        html_message: Optional[str] = None,
     ) -> bool:
         """
         Send general notification email
-        
+
         Args:
             to_email: Recipient email address
             subject: Email subject
@@ -266,14 +268,14 @@ class EmailService:
         </body>
         </html>
         """
-        
+
         email_message = self._create_message(to_email, subject, html_body, message)
         return self._send_email(email_message, to_email)
-    
+
     def send_welcome_email(self, to_email: str, name: str) -> bool:
         """Send welcome email to new users"""
         subject = "Welcome to AmaniQuery!"
-        
+
         html_body = f"""
         <!DOCTYPE html>
         <html>
@@ -307,7 +309,7 @@ class EmailService:
         </body>
         </html>
         """
-        
+
         text_body = f"""
         Welcome to AmaniQuery!
         
@@ -327,7 +329,7 @@ class EmailService:
         
         © {datetime.now().year} AmaniQuery. All rights reserved.
         """
-        
+
         message = self._create_message(to_email, subject, html_body, text_body)
         return self._send_email(message, to_email)
 
@@ -339,6 +341,5 @@ def get_email_service() -> EmailService:
         smtp_port=int(os.getenv("SMTP_PORT", "587")),
         sender_email=os.getenv("GMAIL_SENDER_EMAIL", "amaniquery@gmail.com"),
         sender_password=os.getenv("GMAIL_APP_PASSWORD"),
-        sender_name=os.getenv("EMAIL_SENDER_NAME", "AmaniQuery")
+        sender_name=os.getenv("EMAIL_SENDER_NAME", "AmaniQuery"),
     )
-

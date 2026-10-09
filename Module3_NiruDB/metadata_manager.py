@@ -1,6 +1,7 @@
 """
 Metadata Manager - Query and manage document metadata
 """
+
 from typing import List, Dict, Optional, Tuple, Any
 from datetime import datetime, date
 from loguru import logger
@@ -31,7 +32,9 @@ class MetadataManager:
         self.CACHE_SOURCES = "metadata:sources"
         self.CACHE_STATS = "metadata:stats"
 
-        logger.info("MetadataManager initialized with caching and cross-backend support")
+        logger.info(
+            "MetadataManager initialized with caching and cross-backend support"
+        )
 
     def _get_cache_key(self, operation: str, **params) -> str:
         """Generate cache key for operation"""
@@ -55,7 +58,9 @@ class MetadataManager:
         if not self.redis_client:
             return
         try:
-            self.redis_client.set(key, json.dumps(value, default=str), ex=self.cache_ttl)
+            self.redis_client.set(
+                key, json.dumps(value, default=str), ex=self.cache_ttl
+            )
         except Exception as e:
             logger.warning(f"Cache write error: {e}")
 
@@ -67,7 +72,11 @@ class MetadataManager:
             # Simple pattern matching - in production you'd use Redis SCAN
             keys_to_delete = []
             if pattern == "*":
-                keys_to_delete = [self.CACHE_CATEGORIES, self.CACHE_SOURCES, self.CACHE_STATS]
+                keys_to_delete = [
+                    self.CACHE_CATEGORIES,
+                    self.CACHE_SOURCES,
+                    self.CACHE_STATS,
+                ]
             elif "categories" in pattern:
                 keys_to_delete = [self.CACHE_CATEGORIES]
             elif "sources" in pattern:
@@ -78,7 +87,9 @@ class MetadataManager:
         except Exception as e:
             logger.warning(f"Cache invalidation error: {e}")
 
-    def filter_by_category(self, category: str, limit: int = 100, namespace: Optional[str] = None) -> List[Dict]:
+    def filter_by_category(
+        self, category: str, limit: int = 100, namespace: Optional[str] = None
+    ) -> List[Dict]:
         """
         Get documents by category with namespace support
 
@@ -93,7 +104,9 @@ class MetadataManager:
         if not category or not category.strip():
             raise ValueError("Category cannot be empty")
 
-        cache_key = self._get_cache_key("filter_category", category=category, limit=limit, namespace=namespace)
+        cache_key = self._get_cache_key(
+            "filter_category", category=category, limit=limit, namespace=namespace
+        )
         cached_result = self._get_cached(cache_key)
         if cached_result:
             logger.debug(f"Cache hit for category filter: {category}")
@@ -101,7 +114,17 @@ class MetadataManager:
 
         try:
             # Use vector store query with filter across all namespaces if none specified
-            namespaces = [namespace] if namespace else ["kenya_law", "kenya_news", "kenya_parliament", "historical", "global_trends"]
+            namespaces = (
+                [namespace]
+                if namespace
+                else [
+                    "kenya_law",
+                    "kenya_news",
+                    "kenya_parliament",
+                    "historical",
+                    "global_trends",
+                ]
+            )
 
             all_results = []
             for ns in namespaces:
@@ -109,7 +132,7 @@ class MetadataManager:
                     query_text="",  # Empty query for metadata-only search
                     n_results=limit,
                     filter={"category": category},
-                    namespace=ns
+                    namespace=ns,
                 )
                 all_results.extend(results)
                 if len(all_results) >= limit:
@@ -117,7 +140,7 @@ class MetadataManager:
 
             # Sort by relevance (if scores available) and limit
             if all_results and "distance" in all_results[0]:
-                all_results.sort(key=lambda x: x.get("distance", float('inf')))
+                all_results.sort(key=lambda x: x.get("distance", float("inf")))
 
             results = all_results[:limit]
             self._set_cached(cache_key, results)
@@ -128,7 +151,9 @@ class MetadataManager:
             logger.error(f"Error filtering by category {category}: {e}")
             return []
 
-    def filter_by_source(self, source_name: str, limit: int = 100, namespace: Optional[str] = None) -> List[Dict]:
+    def filter_by_source(
+        self, source_name: str, limit: int = 100, namespace: Optional[str] = None
+    ) -> List[Dict]:
         """
         Get documents by source with namespace support
 
@@ -143,7 +168,9 @@ class MetadataManager:
         if not source_name or not source_name.strip():
             raise ValueError("Source name cannot be empty")
 
-        cache_key = self._get_cache_key("filter_source", source_name=source_name, limit=limit, namespace=namespace)
+        cache_key = self._get_cache_key(
+            "filter_source", source_name=source_name, limit=limit, namespace=namespace
+        )
         cached_result = self._get_cached(cache_key)
         if cached_result:
             logger.debug(f"Cache hit for source filter: {source_name}")
@@ -151,7 +178,17 @@ class MetadataManager:
 
         try:
             # Use vector store query with filter across all namespaces if none specified
-            namespaces = [namespace] if namespace else ["kenya_law", "kenya_news", "kenya_parliament", "historical", "global_trends"]
+            namespaces = (
+                [namespace]
+                if namespace
+                else [
+                    "kenya_law",
+                    "kenya_news",
+                    "kenya_parliament",
+                    "historical",
+                    "global_trends",
+                ]
+            )
 
             all_results = []
             for ns in namespaces:
@@ -159,7 +196,7 @@ class MetadataManager:
                     query_text="",  # Empty query for metadata-only search
                     n_results=limit,
                     filter={"source_name": source_name},
-                    namespace=ns
+                    namespace=ns,
                 )
                 all_results.extend(results)
                 if len(all_results) >= limit:
@@ -167,7 +204,7 @@ class MetadataManager:
 
             # Sort by relevance and limit
             if all_results and "distance" in all_results[0]:
-                all_results.sort(key=lambda x: x.get("distance", float('inf')))
+                all_results.sort(key=lambda x: x.get("distance", float("inf")))
 
             results = all_results[:limit]
             self._set_cached(cache_key, results)
@@ -183,7 +220,7 @@ class MetadataManager:
         start_date: str,
         end_date: str,
         limit: int = 100,
-        namespace: Optional[str] = None
+        namespace: Optional[str] = None,
     ) -> List[Dict]:
         """
         Get documents within date range across all namespaces
@@ -199,13 +236,27 @@ class MetadataManager:
         """
         try:
             # Parse and validate dates
-            start = datetime.fromisoformat(start_date).date() if isinstance(start_date, str) else start_date
-            end = datetime.fromisoformat(end_date).date() if isinstance(end_date, str) else end_date
+            start = (
+                datetime.fromisoformat(start_date).date()
+                if isinstance(start_date, str)
+                else start_date
+            )
+            end = (
+                datetime.fromisoformat(end_date).date()
+                if isinstance(end_date, str)
+                else end_date
+            )
 
             if start > end:
                 raise ValueError("Start date cannot be after end date")
 
-            cache_key = self._get_cache_key("filter_date", start_date=str(start), end_date=str(end), limit=limit, namespace=namespace)
+            cache_key = self._get_cache_key(
+                "filter_date",
+                start_date=str(start),
+                end_date=str(end),
+                limit=limit,
+                namespace=namespace,
+            )
             cached_result = self._get_cached(cache_key)
             if cached_result:
                 logger.debug(f"Cache hit for date range filter: {start} to {end}")
@@ -217,16 +268,30 @@ class MetadataManager:
 
         try:
             # Get sample documents from all relevant namespaces
-            namespaces = [namespace] if namespace else ["kenya_law", "kenya_news", "kenya_parliament", "historical", "global_trends"]
+            namespaces = (
+                [namespace]
+                if namespace
+                else [
+                    "kenya_law",
+                    "kenya_news",
+                    "kenya_parliament",
+                    "historical",
+                    "global_trends",
+                ]
+            )
 
             all_docs = []
             for ns in namespaces:
                 try:
                     # Use sample documents for date filtering (more efficient than vector search)
-                    sample_docs = self._get_sample_documents_from_namespace(ns, limit=1000)
+                    sample_docs = self._get_sample_documents_from_namespace(
+                        ns, limit=1000
+                    )
                     all_docs.extend(sample_docs)
                 except Exception as ns_error:
-                    logger.warning(f"Error getting documents from namespace {ns}: {ns_error}")
+                    logger.warning(
+                        f"Error getting documents from namespace {ns}: {ns_error}"
+                    )
                     continue
 
             # Filter by date range
@@ -237,9 +302,13 @@ class MetadataManager:
                     try:
                         # Handle various date formats
                         if "T" in pub_date_str:
-                            pub_date = datetime.fromisoformat(pub_date_str.replace("Z", "+00:00")).date()
+                            pub_date = datetime.fromisoformat(
+                                pub_date_str.replace("Z", "+00:00")
+                            ).date()
                         else:
-                            pub_date = datetime.strptime(pub_date_str, "%Y-%m-%d").date()
+                            pub_date = datetime.strptime(
+                                pub_date_str, "%Y-%m-%d"
+                            ).date()
 
                         if start <= pub_date <= end:
                             filtered_docs.append(doc)
@@ -249,20 +318,26 @@ class MetadataManager:
 
             # Sort by date (newest first) and limit
             filtered_docs.sort(
-                key=lambda x: x.get("metadata", {}).get("publication_date", "1970-01-01"),
-                reverse=True
+                key=lambda x: x.get("metadata", {}).get(
+                    "publication_date", "1970-01-01"
+                ),
+                reverse=True,
             )
 
             results = filtered_docs[:limit]
             self._set_cached(cache_key, results)
-            logger.info(f"Found {len(results)} documents in date range {start} to {end}")
+            logger.info(
+                f"Found {len(results)} documents in date range {start} to {end}"
+            )
             return results
 
         except Exception as e:
             logger.error(f"Error filtering by date range: {e}")
             return []
 
-    def _get_sample_documents_from_namespace(self, namespace: str, limit: int = 1000) -> List[Dict]:
+    def _get_sample_documents_from_namespace(
+        self, namespace: str, limit: int = 1000
+    ) -> List[Dict]:
         """Get sample documents from a specific namespace"""
         try:
             # Temporarily modify collection name for namespace
@@ -278,10 +353,14 @@ class MetadataManager:
             return sample_docs
 
         except Exception as e:
-            logger.warning(f"Error getting sample documents from namespace {namespace}: {e}")
+            logger.warning(
+                f"Error getting sample documents from namespace {namespace}: {e}"
+            )
             return []
 
-    def get_categories(self, namespace: Optional[str] = None, force_refresh: bool = False) -> List[str]:
+    def get_categories(
+        self, namespace: Optional[str] = None, force_refresh: bool = False
+    ) -> List[str]:
         """
         Get list of all unique categories with optional namespace filtering
 
@@ -301,17 +380,31 @@ class MetadataManager:
 
         try:
             categories = set()
-            namespaces = [namespace] if namespace else ["kenya_law", "kenya_news", "kenya_parliament", "historical", "global_trends"]
+            namespaces = (
+                [namespace]
+                if namespace
+                else [
+                    "kenya_law",
+                    "kenya_news",
+                    "kenya_parliament",
+                    "historical",
+                    "global_trends",
+                ]
+            )
 
             for ns in namespaces:
                 try:
-                    sample_docs = self._get_sample_documents_from_namespace(ns, limit=2000)
+                    sample_docs = self._get_sample_documents_from_namespace(
+                        ns, limit=2000
+                    )
                     for doc in sample_docs:
                         category = doc.get("metadata", {}).get("category", "").strip()
                         if category and category != "Unknown":
                             categories.add(category)
                 except Exception as ns_error:
-                    logger.warning(f"Error getting categories from namespace {ns}: {ns_error}")
+                    logger.warning(
+                        f"Error getting categories from namespace {ns}: {ns_error}"
+                    )
                     continue
 
             result = sorted(list(categories))
@@ -323,7 +416,9 @@ class MetadataManager:
             logger.error(f"Error getting categories: {e}")
             return ["Unknown"]
 
-    def get_sources(self, namespace: Optional[str] = None, force_refresh: bool = False) -> List[str]:
+    def get_sources(
+        self, namespace: Optional[str] = None, force_refresh: bool = False
+    ) -> List[str]:
         """
         Get list of all unique sources with optional namespace filtering
 
@@ -343,17 +438,31 @@ class MetadataManager:
 
         try:
             sources = set()
-            namespaces = [namespace] if namespace else ["kenya_law", "kenya_news", "kenya_parliament", "historical", "global_trends"]
+            namespaces = (
+                [namespace]
+                if namespace
+                else [
+                    "kenya_law",
+                    "kenya_news",
+                    "kenya_parliament",
+                    "historical",
+                    "global_trends",
+                ]
+            )
 
             for ns in namespaces:
                 try:
-                    sample_docs = self._get_sample_documents_from_namespace(ns, limit=2000)
+                    sample_docs = self._get_sample_documents_from_namespace(
+                        ns, limit=2000
+                    )
                     for doc in sample_docs:
                         source = doc.get("metadata", {}).get("source_name", "").strip()
                         if source and source != "Unknown":
                             sources.add(source)
                 except Exception as ns_error:
-                    logger.warning(f"Error getting sources from namespace {ns}: {ns_error}")
+                    logger.warning(
+                        f"Error getting sources from namespace {ns}: {ns_error}"
+                    )
                     continue
 
             result = sorted(list(sources))
@@ -365,7 +474,9 @@ class MetadataManager:
             logger.error(f"Error getting sources: {e}")
             return ["Unknown"]
 
-    def get_citation(self, chunk_id: str, namespace: Optional[str] = None) -> Optional[Dict]:
+    def get_citation(
+        self, chunk_id: str, namespace: Optional[str] = None
+    ) -> Optional[Dict]:
         """
         Get citation information for a chunk across all backends and namespaces
 
@@ -379,7 +490,9 @@ class MetadataManager:
         if not chunk_id or not chunk_id.strip():
             return None
 
-        cache_key = self._get_cache_key("citation", chunk_id=chunk_id, namespace=namespace)
+        cache_key = self._get_cache_key(
+            "citation", chunk_id=chunk_id, namespace=namespace
+        )
         cached_result = self._get_cached(cache_key)
         if cached_result:
             logger.debug(f"Cache hit for citation: {chunk_id}")
@@ -387,7 +500,17 @@ class MetadataManager:
 
         try:
             # Try different namespaces if none specified
-            namespaces = [namespace] if namespace else ["kenya_law", "kenya_news", "kenya_parliament", "historical", "global_trends"]
+            namespaces = (
+                [namespace]
+                if namespace
+                else [
+                    "kenya_law",
+                    "kenya_news",
+                    "kenya_parliament",
+                    "historical",
+                    "global_trends",
+                ]
+            )
 
             for ns in namespaces:
                 try:
@@ -406,7 +529,9 @@ class MetadataManager:
             logger.error(f"Error getting citation for {chunk_id}: {e}")
             return None
 
-    def _get_citation_from_namespace(self, chunk_id: str, namespace: str) -> Optional[Dict]:
+    def _get_citation_from_namespace(
+        self, chunk_id: str, namespace: str
+    ) -> Optional[Dict]:
         """Get citation from a specific namespace"""
         try:
             if self.vector_store.backend == "chromadb":
@@ -416,8 +541,7 @@ class MetadataManager:
 
                 try:
                     result = self.vector_store.collection.get(
-                        ids=[chunk_id],
-                        include=["metadatas", "documents"]
+                        ids=[chunk_id], include=["metadatas", "documents"]
                     )
 
                     # Restore collection name
@@ -440,19 +564,21 @@ class MetadataManager:
 
                 try:
                     from qdrant_client.http import models
+
                     # Try to find by payload chunk_id first
                     scroll_filter = models.Filter(
-                        must=[models.FieldCondition(
-                            key="chunk_id",
-                            match=models.MatchValue(value=chunk_id)
-                        )]
+                        must=[
+                            models.FieldCondition(
+                                key="chunk_id", match=models.MatchValue(value=chunk_id)
+                            )
+                        ]
                     )
 
                     scroll_result, _ = self.vector_store.client.scroll(
                         collection_name=self.vector_store.collection_name,
                         scroll_filter=scroll_filter,
                         limit=1,
-                        with_payload=True
+                        with_payload=True,
                     )
 
                     # Restore collection name
@@ -461,8 +587,15 @@ class MetadataManager:
                     if not scroll_result:
                         return None
 
-                    payload = scroll_result[0].payload if hasattr(scroll_result[0], 'payload') else {}
-                    meta = {k: str(v) if not isinstance(v, str) else v for k, v in payload.items()}
+                    payload = (
+                        scroll_result[0].payload
+                        if hasattr(scroll_result[0], "payload")
+                        else {}
+                    )
+                    meta = {
+                        k: str(v) if not isinstance(v, str) else v
+                        for k, v in payload.items()
+                    }
 
                 except Exception as qdrant_error:
                     # Restore collection name on error
@@ -482,16 +615,21 @@ class MetadataManager:
                     vector=dummy_vector,
                     top_k=1,
                     filter=filter_dict,
-                    include_metadata=True
+                    include_metadata=True,
                 )
 
                 if not results:
                     return None
 
-                meta = {k: str(v) if not isinstance(v, str) else v for k, v in results[0].metadata.items()}
+                meta = {
+                    k: str(v) if not isinstance(v, str) else v
+                    for k, v in results[0].metadata.items()
+                }
 
             else:
-                logger.warning(f"get_citation not implemented for backend: {self.vector_store.backend}")
+                logger.warning(
+                    f"get_citation not implemented for backend: {self.vector_store.backend}"
+                )
                 return None
 
             # Build citation from metadata
@@ -503,7 +641,7 @@ class MetadataManager:
                 "publication_date": meta.get("publication_date", ""),
                 "category": meta.get("category", ""),
                 "chunk_id": chunk_id,
-                "namespace": namespace
+                "namespace": namespace,
             }
 
             return citation
@@ -584,16 +722,28 @@ class MetadataManager:
                 "namespaces": {},
                 "backend": self.vector_store.backend,
                 "cached": self.redis_client is not None,
-                "generated_at": datetime.utcnow().isoformat()
+                "generated_at": datetime.utcnow().isoformat(),
             }
 
-            namespaces = [namespace] if namespace else ["kenya_law", "kenya_news", "kenya_parliament", "historical", "global_trends"]
+            namespaces = (
+                [namespace]
+                if namespace
+                else [
+                    "kenya_law",
+                    "kenya_news",
+                    "kenya_parliament",
+                    "historical",
+                    "global_trends",
+                ]
+            )
 
             all_dates = []
 
             for ns in namespaces:
                 try:
-                    sample_docs = self._get_sample_documents_from_namespace(ns, limit=1000)
+                    sample_docs = self._get_sample_documents_from_namespace(
+                        ns, limit=1000
+                    )
                     ns_count = len(sample_docs)
                     stats["total_documents"] += ns_count
                     stats["namespaces"][ns] = ns_count
@@ -603,7 +753,9 @@ class MetadataManager:
 
                         # Category stats
                         category = meta.get("category", "Unknown")
-                        stats["categories"][category] = stats["categories"].get(category, 0) + 1
+                        stats["categories"][category] = (
+                            stats["categories"].get(category, 0) + 1
+                        )
 
                         # Source stats
                         source = meta.get("source_name", "Unknown")
@@ -614,15 +766,21 @@ class MetadataManager:
                         if pub_date:
                             try:
                                 if "T" in pub_date:
-                                    date_obj = datetime.fromisoformat(pub_date.replace("Z", "+00:00")).date()
+                                    date_obj = datetime.fromisoformat(
+                                        pub_date.replace("Z", "+00:00")
+                                    ).date()
                                 else:
-                                    date_obj = datetime.strptime(pub_date, "%Y-%m-%d").date()
+                                    date_obj = datetime.strptime(
+                                        pub_date, "%Y-%m-%d"
+                                    ).date()
                                 all_dates.append(date_obj)
                             except (ValueError, TypeError):
                                 continue
 
                 except Exception as ns_error:
-                    logger.warning(f"Error getting stats from namespace {ns}: {ns_error}")
+                    logger.warning(
+                        f"Error getting stats from namespace {ns}: {ns_error}"
+                    )
                     continue
 
             # Calculate date range
@@ -631,18 +789,26 @@ class MetadataManager:
                 stats["date_range"]["newest"] = max(all_dates).isoformat()
 
             # Sort category and source stats
-            stats["categories"] = dict(sorted(stats["categories"].items(), key=lambda x: x[1], reverse=True))
-            stats["sources"] = dict(sorted(stats["sources"].items(), key=lambda x: x[1], reverse=True))
+            stats["categories"] = dict(
+                sorted(stats["categories"].items(), key=lambda x: x[1], reverse=True)
+            )
+            stats["sources"] = dict(
+                sorted(stats["sources"].items(), key=lambda x: x[1], reverse=True)
+            )
 
             self._set_cached(cache_key, stats)
-            logger.info(f"Generated statistics for {stats['total_documents']} documents")
+            logger.info(
+                f"Generated statistics for {stats['total_documents']} documents"
+            )
             return stats
 
         except Exception as e:
             logger.error(f"Error generating statistics: {e}")
             return {"error": str(e), "generated_at": datetime.utcnow().isoformat()}
 
-    def batch_get_citations(self, chunk_ids: List[str], namespace: Optional[str] = None) -> Dict[str, Optional[Dict]]:
+    def batch_get_citations(
+        self, chunk_ids: List[str], namespace: Optional[str] = None
+    ) -> Dict[str, Optional[Dict]]:
         """
         Batch get citations for multiple chunk IDs
 
@@ -662,7 +828,9 @@ class MetadataManager:
 
         # Check cache first
         for chunk_id in chunk_ids:
-            cache_key = self._get_cache_key("citation", chunk_id=chunk_id, namespace=namespace)
+            cache_key = self._get_cache_key(
+                "citation", chunk_id=chunk_id, namespace=namespace
+            )
             cached = self._get_cached(cache_key)
             if cached is not None:
                 results[chunk_id] = cached
@@ -675,32 +843,54 @@ class MetadataManager:
         missing_ids = [cid for cid, citation in results.items() if citation is None]
 
         if missing_ids:
-            logger.debug(f"Batch citation lookup: {cache_hits} hits, {cache_misses} misses")
+            logger.debug(
+                f"Batch citation lookup: {cache_hits} hits, {cache_misses} misses"
+            )
 
             # Try different namespaces
-            namespaces = [namespace] if namespace else ["kenya_law", "kenya_news", "kenya_parliament", "historical", "global_trends"]
+            namespaces = (
+                [namespace]
+                if namespace
+                else [
+                    "kenya_law",
+                    "kenya_news",
+                    "kenya_parliament",
+                    "historical",
+                    "global_trends",
+                ]
+            )
 
             for ns in namespaces:
                 if not missing_ids:  # All found
                     break
 
                 try:
-                    found_citations = self._batch_get_citations_from_namespace(missing_ids, ns)
+                    found_citations = self._batch_get_citations_from_namespace(
+                        missing_ids, ns
+                    )
                     for chunk_id, citation in found_citations.items():
                         if citation:
                             results[chunk_id] = citation
                             # Cache the result
-                            cache_key = self._get_cache_key("citation", chunk_id=chunk_id, namespace=namespace)
+                            cache_key = self._get_cache_key(
+                                "citation", chunk_id=chunk_id, namespace=namespace
+                            )
                             self._set_cached(cache_key, citation)
                             missing_ids.remove(chunk_id)
                 except Exception as ns_error:
-                    logger.debug(f"Error in batch citation lookup for namespace {ns}: {ns_error}")
+                    logger.debug(
+                        f"Error in batch citation lookup for namespace {ns}: {ns_error}"
+                    )
                     continue
 
-        logger.info(f"Batch citation lookup completed: {len(results)} total, {cache_hits} cached, {len([r for r in results.values() if r is not None]) - cache_hits} fetched")
+        logger.info(
+            f"Batch citation lookup completed: {len(results)} total, {cache_hits} cached, {len([r for r in results.values() if r is not None]) - cache_hits} fetched"
+        )
         return results
 
-    def _batch_get_citations_from_namespace(self, chunk_ids: List[str], namespace: str) -> Dict[str, Optional[Dict]]:
+    def _batch_get_citations_from_namespace(
+        self, chunk_ids: List[str], namespace: str
+    ) -> Dict[str, Optional[Dict]]:
         """Batch get citations from a specific namespace"""
         results = {cid: None for cid in chunk_ids}
 
@@ -712,8 +902,7 @@ class MetadataManager:
 
                 try:
                     result = self.vector_store.collection.get(
-                        ids=chunk_ids,
-                        include=["metadatas", "documents"]
+                        ids=chunk_ids, include=["metadatas", "documents"]
                     )
 
                     # Restore collection name
@@ -721,7 +910,11 @@ class MetadataManager:
 
                     if result["ids"] and result["metadatas"]:
                         for i, chunk_id in enumerate(result["ids"]):
-                            meta = result["metadatas"][i] if i < len(result["metadatas"]) else {}
+                            meta = (
+                                result["metadatas"][i]
+                                if i < len(result["metadatas"])
+                                else {}
+                            )
                             results[chunk_id] = {
                                 "title": meta.get("title", "Untitled"),
                                 "source_url": meta.get("source_url", ""),
@@ -730,7 +923,7 @@ class MetadataManager:
                                 "publication_date": meta.get("publication_date", ""),
                                 "category": meta.get("category", ""),
                                 "chunk_id": chunk_id,
-                                "namespace": namespace
+                                "namespace": namespace,
                             }
 
                 except Exception as chroma_error:
@@ -749,9 +942,9 @@ class MetadataManager:
                     # Create filter for chunk_ids
                     conditions = [
                         models.FieldCondition(
-                            key="chunk_id",
-                            match=models.MatchValue(value=chunk_id)
-                        ) for chunk_id in chunk_ids
+                            key="chunk_id", match=models.MatchValue(value=chunk_id)
+                        )
+                        for chunk_id in chunk_ids
                     ]
 
                     # QDrant doesn't support OR conditions easily in scroll
@@ -759,34 +952,47 @@ class MetadataManager:
                     for chunk_id in chunk_ids:
                         try:
                             scroll_filter = models.Filter(
-                                must=[models.FieldCondition(
-                                    key="chunk_id",
-                                    match=models.MatchValue(value=chunk_id)
-                                )]
+                                must=[
+                                    models.FieldCondition(
+                                        key="chunk_id",
+                                        match=models.MatchValue(value=chunk_id),
+                                    )
+                                ]
                             )
 
                             scroll_result, _ = self.vector_store.client.scroll(
                                 collection_name=self.vector_store.collection_name,
                                 scroll_filter=scroll_filter,
                                 limit=1,
-                                with_payload=True
+                                with_payload=True,
                             )
 
                             if scroll_result:
-                                payload = scroll_result[0].payload if hasattr(scroll_result[0], 'payload') else {}
-                                meta = {k: str(v) if not isinstance(v, str) else v for k, v in payload.items()}
+                                payload = (
+                                    scroll_result[0].payload
+                                    if hasattr(scroll_result[0], "payload")
+                                    else {}
+                                )
+                                meta = {
+                                    k: str(v) if not isinstance(v, str) else v
+                                    for k, v in payload.items()
+                                }
                                 results[chunk_id] = {
                                     "title": meta.get("title", "Untitled"),
                                     "source_url": meta.get("source_url", ""),
                                     "source_name": meta.get("source_name", "Unknown"),
                                     "author": meta.get("author", ""),
-                                    "publication_date": meta.get("publication_date", ""),
+                                    "publication_date": meta.get(
+                                        "publication_date", ""
+                                    ),
                                     "category": meta.get("category", ""),
                                     "chunk_id": chunk_id,
-                                    "namespace": namespace
+                                    "namespace": namespace,
                                 }
                         except Exception as single_error:
-                            logger.debug(f"Error getting citation for {chunk_id}: {single_error}")
+                            logger.debug(
+                                f"Error getting citation for {chunk_id}: {single_error}"
+                            )
                             continue
 
                     # Restore collection name
@@ -801,7 +1007,9 @@ class MetadataManager:
             # We'll skip it for now to avoid performance issues
 
         except Exception as e:
-            logger.debug(f"Error in batch citation lookup for namespace {namespace}: {e}")
+            logger.debug(
+                f"Error in batch citation lookup for namespace {namespace}: {e}"
+            )
 
         return results
 
@@ -829,7 +1037,9 @@ class MetadataManager:
             cursor = 0
             pattern_str = f"metadata:{pattern}"
             while True:
-                cursor, keys = self.redis_client.scan(cursor=cursor, match=pattern_str, count=100)
+                cursor, keys = self.redis_client.scan(
+                    cursor=cursor, match=pattern_str, count=100
+                )
                 for key in keys:
                     try:
                         self.redis_client.delete(key)
@@ -857,12 +1067,9 @@ class MetadataManager:
             "components": {
                 "vector_store": "unknown",
                 "cache": "disabled",
-                "namespaces": []
+                "namespaces": [],
             },
-            "metrics": {
-                "cache_hit_rate": 0.0,
-                "avg_response_time": 0.0
-            }
+            "metrics": {"cache_hit_rate": 0.0, "avg_response_time": 0.0},
         }
 
         try:
@@ -871,7 +1078,11 @@ class MetadataManager:
                 try:
                     stats = self.vector_store.get_stats()
                     health["components"]["vector_store"] = "healthy"
-                    health["components"]["namespaces"] = list(stats.get("sample_categories", {}).keys())[:5]  # Sample
+                    health["components"]["namespaces"] = list(
+                        stats.get("sample_categories", {}).keys()
+                    )[
+                        :5
+                    ]  # Sample
                 except Exception as vs_error:
                     health["components"]["vector_store"] = f"unhealthy: {str(vs_error)}"
                     health["status"] = "degraded"

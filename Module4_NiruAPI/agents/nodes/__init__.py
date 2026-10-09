@@ -8,7 +8,7 @@ Nodes:
 - tool_executor: Fault-tolerant parallel tool execution using ToolRegistry
 - clarification: Human-in-the-loop clarification sub-graph
 
-Uses actual tools from tool_registry.py: kb_search, web_search, news_search, 
+Uses actual tools from tool_registry.py: kb_search, web_search, news_search,
 calculator, url_fetch, youtube_search, twitter_search
 
 Author: Eng. Onyango Benard

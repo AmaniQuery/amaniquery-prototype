@@ -29,15 +29,19 @@ class InstagramFormatter(BaseFormatter):
             caption_parts.append("\n\nSources:")
             for i, source in enumerate(sources[:3], 1):
                 if isinstance(source, dict):
-                    title = str(source.get('title', '')).strip()
-                    url = str(source.get('url', '')).strip()
+                    title = str(source.get("title", "")).strip()
+                    url = str(source.get("url", "")).strip()
                     if title:
                         if url:
                             caption_parts.append(f"{i}. {title} - {url}")
                         else:
                             caption_parts.append(f"{i}. {title}")
 
-        hashtags = self._generate_hashtags(answer, sources, max_tags=15) if include_hashtags else []
+        hashtags = (
+            self._generate_hashtags(answer, sources, max_tags=15)
+            if include_hashtags
+            else []
+        )
         if hashtags:
             caption_parts.append("\n\n" + " ".join(hashtags))
 

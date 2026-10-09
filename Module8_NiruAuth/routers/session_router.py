@@ -2,6 +2,7 @@
 Session Management Router
 List active sessions, revoke sessions, concurrent session limits
 """
+
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
@@ -25,14 +26,21 @@ async def list_sessions(
     db: Session = Depends(get_db),
 ):
     """List all active sessions for the current user"""
-    current_token = request.headers.get("X-Session-Token") or request.cookies.get("session_token")
+    current_token = request.headers.get("X-Session-Token") or request.cookies.get(
+        "session_token"
+    )
     current_hash = SessionProvider.hash_token(current_token) if current_token else None
 
-    sessions = db.query(UserSession).filter(
-        UserSession.user_id == user.id,
-        UserSession.is_active == True,
-        UserSession.expires_at > datetime.utcnow(),
-    ).order_by(UserSession.last_activity.desc()).all()
+    sessions = (
+        db.query(UserSession)
+        .filter(
+            UserSession.user_id == user.id,
+            UserSession.is_active == True,
+            UserSession.expires_at > datetime.utcnow(),
+        )
+        .order_by(UserSession.last_activity.desc())
+        .all()
+    )
 
     return [
         SessionResponse(
@@ -55,17 +63,21 @@ async def revoke_session(
     db: Session = Depends(get_db),
 ):
     """Revoke a specific session"""
-    session = db.query(UserSession).filter(
-        UserSession.id == session_id,
-        UserSession.user_id == user.id,
-    ).first()
+    session = (
+        db.query(UserSession)
+        .filter(
+            UserSession.id == session_id,
+            UserSession.user_id == user.id,
+        )
+        .first()
+    )
 
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
 
     session.is_active = False
     db.commit()
-    logger = __import__('logging').getLogger(__name__)
+    logger = __import__("logging").getLogger(__name__)
     logger.info(f"Session {session_id} revoked for user {user.id}")
 
 
@@ -76,13 +88,19 @@ async def revoke_all_sessions(
     db: Session = Depends(get_db),
 ):
     """Revoke all sessions (except current one)"""
-    current_token = request.headers.get("X-Session-Token") or request.cookies.get("session_token")
+    current_token = request.headers.get("X-Session-Token") or request.cookies.get(
+        "session_token"
+    )
     current_hash = SessionProvider.hash_token(current_token) if current_token else None
 
-    sessions = db.query(UserSession).filter(
-        UserSession.user_id == user.id,
-        UserSession.is_active == True,
-    ).all()
+    sessions = (
+        db.query(UserSession)
+        .filter(
+            UserSession.user_id == user.id,
+            UserSession.is_active == True,
+        )
+        .all()
+    )
 
     revoked = 0
     for s in sessions:
@@ -92,25 +110,32 @@ async def revoke_all_sessions(
         revoked += 1
 
     db.commit()
-    logger = __import__('logging').getLogger(__name__)
+    logger = __import__("logging").getLogger(__name__)
     logger.info(f"Revoked {revoked} sessions for user {user.id} (kept current)")
 
 
-def enforce_concurrent_sessions(db: Session, user_id: str, new_session_token: str) -> None:
+def enforce_concurrent_sessions(
+    db: Session, user_id: str, new_session_token: str
+) -> None:
     """Enforce maximum concurrent sessions per user.
     Call this after creating a new session. Revokes oldest if over limit.
     """
-    active_sessions = db.query(UserSession).filter(
-        UserSession.user_id == user_id,
-        UserSession.is_active == True,
-        UserSession.expires_at > datetime.utcnow(),
-    ).order_by(UserSession.last_activity.asc()).all()
+    active_sessions = (
+        db.query(UserSession)
+        .filter(
+            UserSession.user_id == user_id,
+            UserSession.is_active == True,
+            UserSession.expires_at > datetime.utcnow(),
+        )
+        .order_by(UserSession.last_activity.asc())
+        .all()
+    )
 
     if len(active_sessions) > MAX_CONCURRENT_SESSIONS:
         excess = len(active_sessions) - MAX_CONCURRENT_SESSIONS
         for s in active_sessions[:excess]:
             if s.session_token != new_session_token:
                 s.is_active = False
-                logger = __import__('logging').getLogger(__name__)
+                logger = __import__("logging").getLogger(__name__)
                 logger.info(f"Revoked excess session {s.id} for user {user_id}")
         db.commit()

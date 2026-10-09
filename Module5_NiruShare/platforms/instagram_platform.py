@@ -1,6 +1,7 @@
 """
 Instagram platform plugin
 """
+
 from typing import List, Dict, Optional, Union
 from urllib.parse import quote
 
@@ -10,11 +11,11 @@ from ..formatters.instagram_formatter import InstagramFormatter
 
 class InstagramPlatform(BasePlatform):
     """Instagram platform handler"""
-    
+
     def __init__(self):
         self.formatter = InstagramFormatter()
         super().__init__()
-    
+
     def get_metadata(self) -> PlatformMetadata:
         """Return Instagram platform metadata"""
         return PlatformMetadata(
@@ -28,7 +29,7 @@ class InstagramPlatform(BasePlatform):
             requires_auth=True,
             features=["hashtags", "mentions", "images", "stories", "reels"],
         )
-    
+
     def format_post(
         self,
         answer: str,
@@ -47,7 +48,7 @@ class InstagramPlatform(BasePlatform):
         if style:
             result["style"] = style
         return result
-    
+
     def generate_share_link(
         self,
         content: Union[str, List[str]],
@@ -59,4 +60,3 @@ class InstagramPlatform(BasePlatform):
         if url:
             return f"https://www.instagram.com/"
         return "https://www.instagram.com/"
-

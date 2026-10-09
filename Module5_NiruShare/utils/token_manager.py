@@ -1,6 +1,7 @@
 """
 Token management for social media platforms
 """
+
 import os
 import json
 import time
@@ -20,7 +21,9 @@ class TokenManager:
     """Production-ready token manager with encryption and validation"""
 
     def __init__(self):
-        self.encryption_key = os.getenv("TOKEN_ENCRYPTION_KEY", "default-dev-key-change-in-production")
+        self.encryption_key = os.getenv(
+            "TOKEN_ENCRYPTION_KEY", "default-dev-key-change-in-production"
+        )
         self.redis_url = os.getenv("REDIS_URL")
         self.token_ttl = int(os.getenv("TOKEN_TTL_SECONDS", "3600"))  # 1 hour default
 
@@ -28,6 +31,7 @@ class TokenManager:
         if self.redis_url:
             try:
                 import redis
+
                 self.redis = redis.from_url(self.redis_url)
                 self.use_redis = True
                 logger.info("Using Redis for token storage")
@@ -51,13 +55,17 @@ class TokenManager:
         try:
             # Handle case where encrypted_token might be a dict
             if isinstance(encrypted_token, dict):
-                logger.warning(f"encrypted_token is a dict, expected string: {encrypted_token}")
+                logger.warning(
+                    f"encrypted_token is a dict, expected string: {encrypted_token}"
+                )
                 return None
-            
+
             if not isinstance(encrypted_token, str):
-                logger.warning(f"encrypted_token is not a string: {type(encrypted_token)}")
+                logger.warning(
+                    f"encrypted_token is not a string: {type(encrypted_token)}"
+                )
                 return None
-                
+
             encrypted, token = encrypted_token.split(":", 1)
             key = self.encryption_key.encode()
             expected = hmac.new(key, token.encode(), hashlib.sha256).hexdigest()
@@ -72,7 +80,9 @@ class TokenManager:
         """Generate storage key for user-platform combination"""
         return f"token:{user_id}:{platform}"
 
-    def store_token(self, user_id: str, platform: str, token_data: Dict[str, Any]) -> bool:
+    def store_token(
+        self, user_id: str, platform: str, token_data: Dict[str, Any]
+    ) -> bool:
         """
         Store encrypted token with metadata
 
@@ -84,11 +94,15 @@ class TokenManager:
         try:
             # Add metadata
             token_data["stored_at"] = datetime.utcnow().isoformat()
-            token_data["expires_at"] = (datetime.utcnow() + timedelta(seconds=self.token_ttl)).isoformat()
+            token_data["expires_at"] = (
+                datetime.utcnow() + timedelta(seconds=self.token_ttl)
+            ).isoformat()
 
             # Encrypt the access token
             if "access_token" in token_data:
-                token_data["encrypted_token"] = self._encrypt_token(token_data["access_token"])
+                token_data["encrypted_token"] = self._encrypt_token(
+                    token_data["access_token"]
+                )
 
             storage_key = self._get_storage_key(user_id, platform)
 
@@ -137,7 +151,9 @@ class TokenManager:
                 if decrypted:
                     token_data["access_token"] = decrypted
                 else:
-                    logger.error(f"Failed to decrypt token for user {user_id} on platform {platform}")
+                    logger.error(
+                        f"Failed to decrypt token for user {user_id} on platform {platform}"
+                    )
                     return None
 
             return token_data
@@ -145,7 +161,9 @@ class TokenManager:
             logger.error(f"Failed to get token: {e}")
             return None
 
-    def store_oauth_state(self, user_id: str, platform: str, state_data: Dict[str, Any]) -> bool:
+    def store_oauth_state(
+        self, user_id: str, platform: str, state_data: Dict[str, Any]
+    ) -> bool:
         """
         Store temporary OAuth state data (like code_verifier) securely
 
@@ -157,7 +175,9 @@ class TokenManager:
         try:
             # Add metadata
             state_data["stored_at"] = datetime.utcnow().isoformat()
-            state_data["expires_at"] = (datetime.utcnow() + timedelta(minutes=10)).isoformat()  # Short TTL for OAuth state
+            state_data["expires_at"] = (
+                datetime.utcnow() + timedelta(minutes=10)
+            ).isoformat()  # Short TTL for OAuth state
 
             storage_key = f"oauth_state:{user_id}:{platform}"
 
@@ -196,7 +216,9 @@ class TokenManager:
             # Check expiration
             expires_at = datetime.fromisoformat(state_data.get("expires_at", ""))
             if datetime.utcnow() > expires_at:
-                logger.info(f"OAuth state expired for user {user_id} on platform {platform}")
+                logger.info(
+                    f"OAuth state expired for user {user_id} on platform {platform}"
+                )
                 self.delete_oauth_state(user_id, platform)
                 return None
 
@@ -215,7 +237,9 @@ class TokenManager:
             else:
                 self._delete_from_file(storage_key)
 
-            logger.info(f"Deleted OAuth state for user {user_id} on platform {platform}")
+            logger.info(
+                f"Deleted OAuth state for user {user_id} on platform {platform}"
+            )
             return True
         except Exception as e:
             logger.error(f"Failed to delete OAuth state: {e}")
@@ -293,14 +317,14 @@ class TokenManager:
         """Store data in encrypted file (not recommended for production)"""
         try:
             if os.path.exists(self.storage_file):
-                with open(self.storage_file, 'r') as f:
+                with open(self.storage_file, "r") as f:
                     all_data = json.load(f)
             else:
                 all_data = {}
 
             all_data[key] = data
 
-            with open(self.storage_file, 'w') as f:
+            with open(self.storage_file, "w") as f:
                 json.dump(all_data, f)
         except Exception as e:
             logger.error(f"Failed to store to file: {e}")
@@ -311,7 +335,7 @@ class TokenManager:
             if not os.path.exists(self.storage_file):
                 return None
 
-            with open(self.storage_file, 'r') as f:
+            with open(self.storage_file, "r") as f:
                 all_data = json.load(f)
 
             return all_data.get(key)
@@ -325,13 +349,13 @@ class TokenManager:
             if not os.path.exists(self.storage_file):
                 return
 
-            with open(self.storage_file, 'r') as f:
+            with open(self.storage_file, "r") as f:
                 all_data = json.load(f)
 
             if key in all_data:
                 del all_data[key]
 
-            with open(self.storage_file, 'w') as f:
+            with open(self.storage_file, "w") as f:
                 json.dump(all_data, f)
         except Exception as e:
             logger.error(f"Failed to delete from file: {e}")
@@ -341,7 +365,9 @@ class TokenManager:
         """Validate LinkedIn token by making a test API call"""
         try:
             headers = {"Authorization": f"Bearer {access_token}"}
-            response = requests.get("https://api.linkedin.com/v2/people/~", headers=headers, timeout=10)
+            response = requests.get(
+                "https://api.linkedin.com/v2/people/~", headers=headers, timeout=10
+            )
             return response.status_code == 200
         except:
             return False
@@ -351,7 +377,7 @@ class TokenManager:
         try:
             response = requests.get(
                 f"https://graph.facebook.com/me?access_token={access_token}&fields=id",
-                timeout=10
+                timeout=10,
             )
             return response.status_code == 200
         except:
@@ -364,9 +390,7 @@ class TokenManager:
             headers = {"Authorization": f"Bearer {access_token}"}
             # Use the users/me endpoint to validate token
             response = requests.get(
-                "https://api.twitter.com/2/users/me",
-                headers=headers,
-                timeout=10
+                "https://api.twitter.com/2/users/me", headers=headers, timeout=10
             )
             return response.status_code == 200
         except Exception as e:
@@ -397,9 +421,7 @@ class TokenManager:
             }
 
             response = requests.post(
-                "https://www.linkedin.com/oauth/v2/accessToken",
-                data=data,
-                timeout=10
+                "https://www.linkedin.com/oauth/v2/accessToken", data=data, timeout=10
             )
 
             if response.status_code == 200:
@@ -410,9 +432,13 @@ class TokenManager:
                     # Update stored token data
                     updated_data = token_data.copy()
                     updated_data["access_token"] = new_access_token
-                    updated_data["encrypted_token"] = self._encrypt_token(new_access_token)
+                    updated_data["encrypted_token"] = self._encrypt_token(
+                        new_access_token
+                    )
                     updated_data["stored_at"] = datetime.utcnow().isoformat()
-                    updated_data["expires_at"] = (datetime.utcnow() + timedelta(seconds=self.token_ttl)).isoformat()
+                    updated_data["expires_at"] = (
+                        datetime.utcnow() + timedelta(seconds=self.token_ttl)
+                    ).isoformat()
 
                     # Add new refresh token if provided
                     if new_token_data.get("refresh_token"):
@@ -420,7 +446,9 @@ class TokenManager:
 
                     success = self.store_token(user_id, "linkedin", updated_data)
                     if success:
-                        logger.info(f"Successfully refreshed LinkedIn token for user {user_id}")
+                        logger.info(
+                            f"Successfully refreshed LinkedIn token for user {user_id}"
+                        )
                         return True
 
             logger.error(f"Failed to refresh LinkedIn token: {response.text}")
@@ -455,7 +483,7 @@ class TokenManager:
             response = requests.get(
                 "https://graph.facebook.com/oauth/access_token",
                 params=params,
-                timeout=10
+                timeout=10,
             )
 
             if response.status_code == 200:
@@ -466,13 +494,19 @@ class TokenManager:
                     # Update stored token data
                     updated_data = token_data.copy()
                     updated_data["access_token"] = new_access_token
-                    updated_data["encrypted_token"] = self._encrypt_token(new_access_token)
+                    updated_data["encrypted_token"] = self._encrypt_token(
+                        new_access_token
+                    )
                     updated_data["stored_at"] = datetime.utcnow().isoformat()
-                    updated_data["expires_at"] = (datetime.utcnow() + timedelta(seconds=self.token_ttl)).isoformat()
+                    updated_data["expires_at"] = (
+                        datetime.utcnow() + timedelta(seconds=self.token_ttl)
+                    ).isoformat()
 
                     success = self.store_token(user_id, "facebook", updated_data)
                     if success:
-                        logger.info(f"Successfully refreshed Facebook token for user {user_id}")
+                        logger.info(
+                            f"Successfully refreshed Facebook token for user {user_id}"
+                        )
                         return True
 
             logger.error(f"Failed to refresh Facebook token: {response.text}")
@@ -499,6 +533,7 @@ class TokenManager:
             # Twitter OAuth 2.0 refresh token flow
             auth_string = f"{client_id}:{client_secret}"
             import base64
+
             auth_header = base64.b64encode(auth_string.encode()).decode()
 
             headers = {
@@ -515,7 +550,7 @@ class TokenManager:
                 "https://api.twitter.com/2/oauth2/token",
                 headers=headers,
                 data=data,
-                timeout=10
+                timeout=10,
             )
 
             if response.status_code == 200:
@@ -527,9 +562,13 @@ class TokenManager:
                     # Update stored token data
                     updated_data = token_data.copy()
                     updated_data["access_token"] = new_access_token
-                    updated_data["encrypted_token"] = self._encrypt_token(new_access_token)
+                    updated_data["encrypted_token"] = self._encrypt_token(
+                        new_access_token
+                    )
                     updated_data["stored_at"] = datetime.utcnow().isoformat()
-                    updated_data["expires_at"] = (datetime.utcnow() + timedelta(seconds=self.token_ttl)).isoformat()
+                    updated_data["expires_at"] = (
+                        datetime.utcnow() + timedelta(seconds=self.token_ttl)
+                    ).isoformat()
 
                     # Update refresh token if provided
                     if new_refresh_token:
@@ -537,7 +576,9 @@ class TokenManager:
 
                     success = self.store_token(user_id, "twitter", updated_data)
                     if success:
-                        logger.info(f"Successfully refreshed Twitter token for user {user_id}")
+                        logger.info(
+                            f"Successfully refreshed Twitter token for user {user_id}"
+                        )
                         return True
 
             logger.error(f"Failed to refresh Twitter token: {response.text}")

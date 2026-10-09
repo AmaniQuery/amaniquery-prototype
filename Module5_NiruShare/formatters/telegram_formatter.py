@@ -28,14 +28,18 @@ class TelegramFormatter(BaseFormatter):
             message_parts.append("\n\n*Sources:*")
             for i, source in enumerate(sources[:5], 1):
                 if isinstance(source, dict):
-                    title = str(source.get('title', '')).strip()
-                    url = str(source.get('url', '')).strip()
+                    title = str(source.get("title", "")).strip()
+                    url = str(source.get("url", "")).strip()
                     if url:
                         message_parts.append(f"\n{i}. [{title}]({url})")
                     else:
                         message_parts.append(f"\n{i}. {title}")
 
-        hashtags = self._generate_hashtags(answer, sources, max_tags=10) if include_hashtags else []
+        hashtags = (
+            self._generate_hashtags(answer, sources, max_tags=10)
+            if include_hashtags
+            else []
+        )
         if hashtags:
             message_parts.append("\n\n" + " ".join(hashtags))
 

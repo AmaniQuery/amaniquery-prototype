@@ -27,10 +27,12 @@ from langchain_core.tools import BaseTool
 # Provider imports
 try:
     from duckduckgo_search import DDGS
+
     DDGS_AVAILABLE = True
 except ImportError:
     try:
         from ddgs import DDGS
+
         DDGS_AVAILABLE = True
     except ImportError:
         DDGS = None
@@ -39,6 +41,7 @@ except ImportError:
 
 try:
     import httpx
+
     HTTPX_AVAILABLE = True
 except ImportError:
     HTTPX_AVAILABLE = False
@@ -48,22 +51,35 @@ except ImportError:
 # INPUT SCHEMA (Pydantic v2)
 # =============================================================================
 
+
 class WebSearchInput(BaseModel):
     """Input schema for Web Search."""
+
     query: str = Field(..., description="The search query to execute.")
-    max_results: int = Field(default=10, ge=1, le=50, description="Maximum number of results to return.")
-    region: str = Field(default="us-en", description="Search region (e.g., 'us-en', 'ke-en').")
-    search_type: str = Field(default="text", description="Type of search: 'text' or 'news'.")
-    time_range: Optional[str] = Field(default=None, description="Time range: 'd' (day), 'w' (week), 'm' (month), 'y' (year).")
+    max_results: int = Field(
+        default=10, ge=1, le=50, description="Maximum number of results to return."
+    )
+    region: str = Field(
+        default="us-en", description="Search region (e.g., 'us-en', 'ke-en')."
+    )
+    search_type: str = Field(
+        default="text", description="Type of search: 'text' or 'news'."
+    )
+    time_range: Optional[str] = Field(
+        default=None,
+        description="Time range: 'd' (day), 'w' (week), 'm' (month), 'y' (year).",
+    )
 
 
 # =============================================================================
 # CONFIGURATION
 # =============================================================================
 
+
 @dataclass
 class WebSearchConfig:
     """Configuration for web search tool."""
+
     max_retries: int = 3
     base_retry_delay: float = 1.0
     max_retry_delay: float = 10.0
@@ -82,19 +98,20 @@ class WebSearchConfig:
 # MAIN TOOL CLASS (LangChain Compatible)
 # =============================================================================
 
+
 class WebSearchTool(BaseTool):
     """
     Robust web search tool for LangGraph agents.
     Search the web for current information, news, and general knowledge.
     """
-    
+
     name: str = "web_search"
     description: str = (
         "Search the web for current information, news, and general knowledge. "
         "Best for: recent events, general questions, fact-checking, research."
     )
     args_schema: Type[BaseModel] = WebSearchInput
-    
+
     # Private attributes
     _config: WebSearchConfig = PrivateAttr()
     _ddgs: Optional[Any] = PrivateAttr()
@@ -106,17 +123,17 @@ class WebSearchTool(BaseTool):
     def __init__(self, config: Optional[WebSearchConfig] = None, **kwargs):
         super().__init__(**kwargs)
         self._config = config or WebSearchConfig()
-        
+
         # Initialize providers
         self._ddgs = DDGS() if DDGS_AVAILABLE else None
-        
+
         # Rate limiting
         self._last_request_time = 0.0
-        
+
         # Simple cache
         self._cache = {}
         self._cache_times = {}
-        
+
         # Metrics
         self._metrics = {
             "total_searches": 0,
@@ -126,7 +143,7 @@ class WebSearchTool(BaseTool):
             "retries": 0,
             "provider_fallbacks": 0,
         }
-        
+
         logger.info(f"WebSearchTool initialized (ddgs: {DDGS_AVAILABLE})")
 
     def _run(
@@ -135,17 +152,18 @@ class WebSearchTool(BaseTool):
         max_results: int = 10,
         region: str = "us-en",
         search_type: str = "text",
-        time_range: Optional[str] = None
+        time_range: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Synchronous execution (delegates to async runner via event loop)."""
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 import concurrent.futures
+
                 with concurrent.futures.ThreadPoolExecutor() as pool:
                     future = pool.submit(
                         asyncio.run,
-                        self._arun(query, max_results, region, search_type, time_range)
+                        self._arun(query, max_results, region, search_type, time_range),
                     )
                     return future.result(timeout=self._config.timeout + 5)
             else:
@@ -162,18 +180,18 @@ class WebSearchTool(BaseTool):
         max_results: int = 10,
         region: str = "us-en",
         search_type: str = "text",
-        time_range: Optional[str] = None
+        time_range: Optional[str] = None,
     ) -> Dict[str, Any]:
         """Async execution with fallback providers and retry logic."""
         if not query or not query.strip():
             return self._error_response(query, "Empty query provided")
-        
+
         # Validate max_results
         max_results = max(1, min(max_results, 50))
-        
+
         self._metrics["total_searches"] += 1
         start_time = time.time()
-        
+
         # Check cache
         cache_key = self._make_cache_key(query, region, search_type, max_results)
         if self._config.cache_enabled:
@@ -182,14 +200,14 @@ class WebSearchTool(BaseTool):
                 self._metrics["cache_hits"] += 1
                 cached["metadata"]["cached"] = True
                 return cached
-        
+
         # Try providers in order
         providers = [
             ("duckduckgo", self._search_ddg),
             ("tavily", self._search_tavily),
             ("searxng", self._search_searxng),
         ]
-        
+
         last_error = None
         for provider_name, provider_func in providers:
             try:
@@ -201,7 +219,7 @@ class WebSearchTool(BaseTool):
                     search_type=search_type,
                     time_range=time_range,
                 )
-                
+
                 if results and results.get("results"):
                     results["metadata"] = {
                         "provider": provider_name,
@@ -209,50 +227,53 @@ class WebSearchTool(BaseTool):
                         "cached": False,
                         "timestamp": datetime.utcnow().isoformat(),
                     }
-                    
+
                     # Cache successful results
                     if self._config.cache_enabled:
                         self._set_cache(cache_key, results)
-                    
+
                     self._metrics["successful_searches"] += 1
                     return results
-                    
+
             except Exception as e:
                 last_error = e
                 self._metrics["provider_fallbacks"] += 1
                 logger.warning(f"Provider {provider_name} failed: {e}")
                 continue
-        
+
         # All providers failed
         self._metrics["failed_searches"] += 1
-        return self._error_response(query, str(last_error) if last_error else "All search providers failed")
+        return self._error_response(
+            query, str(last_error) if last_error else "All search providers failed"
+        )
 
     async def _search_with_retry(self, search_func, **kwargs) -> Dict[str, Any]:
         """Execute search with retry logic."""
         last_error = None
-        
+
         for attempt in range(self._config.max_retries):
             try:
                 # Rate limiting
                 await self._rate_limit()
-                
+
                 return await asyncio.wait_for(
-                    search_func(**kwargs),
-                    timeout=self._config.timeout
+                    search_func(**kwargs), timeout=self._config.timeout
                 )
             except asyncio.TimeoutError:
-                last_error = TimeoutError(f"Search timed out after {self._config.timeout}s")
+                last_error = TimeoutError(
+                    f"Search timed out after {self._config.timeout}s"
+                )
             except Exception as e:
                 last_error = e
-            
+
             if attempt < self._config.max_retries - 1:
                 self._metrics["retries"] += 1
                 delay = min(
-                    self._config.base_retry_delay * (2 ** attempt),
-                    self._config.max_retry_delay
+                    self._config.base_retry_delay * (2**attempt),
+                    self._config.max_retry_delay,
                 )
                 await asyncio.sleep(delay)
-        
+
         raise last_error or Exception("Search failed after retries")
 
     async def _search_ddg(
@@ -266,26 +287,30 @@ class WebSearchTool(BaseTool):
         """Search using DuckDuckGo."""
         if not self._ddgs:
             raise RuntimeError("DuckDuckGo not available")
-        
+
         loop = asyncio.get_event_loop()
-        
+
         def _do_search():
             if search_type == "news":
-                results = list(self._ddgs.news(
-                    query,
-                    max_results=max_results,
-                    region=region,
-                    timelimit=time_range,
-                ))
+                results = list(
+                    self._ddgs.news(
+                        query,
+                        max_results=max_results,
+                        region=region,
+                        timelimit=time_range,
+                    )
+                )
             else:
-                results = list(self._ddgs.text(
-                    query,
-                    max_results=max_results,
-                    region=region,
-                    timelimit=time_range,
-                ))
+                results = list(
+                    self._ddgs.text(
+                        query,
+                        max_results=max_results,
+                        region=region,
+                        timelimit=time_range,
+                    )
+                )
             return results
-        
+
         raw_results = await loop.run_in_executor(None, _do_search)
         return self._format_results(query, raw_results, "duckduckgo")
 
@@ -300,7 +325,7 @@ class WebSearchTool(BaseTool):
         """Search using Tavily API."""
         if not self._config.tavily_api_key or not HTTPX_AVAILABLE:
             raise RuntimeError("Tavily not available")
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 "https://api.tavily.com/search",
@@ -314,14 +339,16 @@ class WebSearchTool(BaseTool):
             )
             response.raise_for_status()
             data = response.json()
-        
+
         results = []
         for item in data.get("results", []):
-            results.append({
-                "title": item.get("title", ""),
-                "body": item.get("content", ""),
-                "href": item.get("url", ""),
-            })
+            results.append(
+                {
+                    "title": item.get("title", ""),
+                    "body": item.get("content", ""),
+                    "href": item.get("url", ""),
+                }
+            )
         return self._format_results(query, results, "tavily")
 
     async def _search_searxng(
@@ -335,7 +362,7 @@ class WebSearchTool(BaseTool):
         """Search using SearXNG."""
         if not self._config.searxng_url or not HTTPX_AVAILABLE:
             raise RuntimeError("SearXNG not available")
-        
+
         async with httpx.AsyncClient() as client:
             response = await client.get(
                 f"{self._config.searxng_url}/search",
@@ -348,34 +375,42 @@ class WebSearchTool(BaseTool):
             )
             response.raise_for_status()
             data = response.json()
-        
+
         results = []
         for item in data.get("results", [])[:max_results]:
-            results.append({
-                "title": item.get("title", ""),
-                "body": item.get("content", ""),
-                "href": item.get("url", ""),
-            })
+            results.append(
+                {
+                    "title": item.get("title", ""),
+                    "body": item.get("content", ""),
+                    "href": item.get("url", ""),
+                }
+            )
         return self._format_results(query, results, "searxng")
 
-    def _format_results(self, query: str, raw_results: List[Dict], provider: str) -> Dict[str, Any]:
+    def _format_results(
+        self, query: str, raw_results: List[Dict], provider: str
+    ) -> Dict[str, Any]:
         """Format raw results into standard format."""
         formatted = []
         sources = []
-        
+
         for item in raw_results:
-            formatted.append({
-                "title": item.get("title", ""),
-                "snippet": item.get("body", item.get("snippet", "")),
-                "url": item.get("href", item.get("url", "")),
-            })
-            sources.append({
-                "type": "web",
-                "title": item.get("title", ""),
-                "url": item.get("href", item.get("url", "")),
-                "snippet": (item.get("body", item.get("snippet", "")))[:200],
-            })
-        
+            formatted.append(
+                {
+                    "title": item.get("title", ""),
+                    "snippet": item.get("body", item.get("snippet", "")),
+                    "url": item.get("href", item.get("url", "")),
+                }
+            )
+            sources.append(
+                {
+                    "type": "web",
+                    "title": item.get("title", ""),
+                    "url": item.get("href", item.get("url", "")),
+                    "snippet": (item.get("body", item.get("snippet", "")))[:200],
+                }
+            )
+
         return {
             "query": query,
             "results": formatted,
@@ -397,13 +432,15 @@ class WebSearchTool(BaseTool):
         """Apply rate limiting."""
         current_time = time.time()
         time_since_last = current_time - self._last_request_time
-        
+
         if time_since_last < self._config.rate_limit_delay:
             await asyncio.sleep(self._config.rate_limit_delay - time_since_last)
-        
+
         self._last_request_time = time.time()
 
-    def _make_cache_key(self, query: str, region: str, search_type: str, max_results: int) -> str:
+    def _make_cache_key(
+        self, query: str, region: str, search_type: str, max_results: int
+    ) -> str:
         """Create cache key."""
         raw = f"{query}:{region}:{search_type}:{max_results}"
         return hashlib.md5(raw.encode()).hexdigest()
@@ -412,7 +449,7 @@ class WebSearchTool(BaseTool):
         """Get from cache if not expired."""
         if key not in self._cache:
             return None
-        
+
         if time.time() - self._cache_times.get(key, 0) > self._config.cache_ttl:
             del self._cache[key]
             del self._cache_times[key]
@@ -423,7 +460,7 @@ class WebSearchTool(BaseTool):
         """Set cache entry."""
         self._cache[key] = value.copy()
         self._cache_times[key] = time.time()
-        
+
         # Simple cache eviction (keep last 100)
         if len(self._cache) > 100:
             oldest_key = min(self._cache_times, key=self._cache_times.get)

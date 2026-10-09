@@ -35,6 +35,7 @@ Output:
 }
 """
 
+
 class QueryParser:
     def __init__(self):
         self.llm_client = LLMClient()
@@ -45,47 +46,47 @@ class QueryParser:
         """
         current_date = datetime.datetime.now().strftime("%Y-%m-%d")
         prompt = SYSTEM_PROMPT.format(current_date=current_date)
-        
+
         # We use the LLMClient's internal logic which handles Gemini/Groq
-        # We need to construct a prompt that fits the LLMClient's analyze_text method 
+        # We need to construct a prompt that fits the LLMClient's analyze_text method
         # or bypass it if it's too specific to sentiment analysis.
         # The LLMClient.analyze_text uses specific system prompts for sentiment.
         # We should probably extend LLMClient or just use the raw clients if exposed.
         # Looking at LLMClient, it initializes clients but analyze_text is hardcoded for sentiment.
         # Let's modify LLMClient to accept a system prompt or just access the clients directly here if possible.
         # Since LLMClient stores self.gemini_model and self.groq_client, we can access them.
-        
+
         try:
             # Try Gemini
             if self.llm_client.gemini_model:
                 response = self.llm_client.gemini_model.generate_content(
-                    f"{prompt}\nQuery: \"{query}\""
+                    f'{prompt}\nQuery: "{query}"'
                 )
                 return self._parse_json(response.text)
-            
+
             # Try Groq
             elif self.llm_client.groq_client:
                 chat_completion = self.llm_client.groq_client.chat.completions.create(
                     messages=[
                         {"role": "system", "content": prompt},
-                        {"role": "user", "content": f"Query: \"{query}\""}
+                        {"role": "user", "content": f'Query: "{query}"'},
                     ],
                     model="llama-3.1-70b-versatile",
                     temperature=0.1,
-                    response_format={"type": "json_object"}
+                    response_format={"type": "json_object"},
                 )
                 return self._parse_json(chat_completion.choices[0].message.content)
-                
+
         except Exception as e:
             print(f"Query parsing failed: {e}")
-            
+
         # Fallback
         return {
             "topic": None,
             "sentiment": None,
             "date_range": None,
             "platform": None,
-            "sort_by": "relevance"
+            "sort_by": "relevance",
         }
 
     def _parse_json(self, text: str) -> dict:

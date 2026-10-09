@@ -3,6 +3,7 @@ Research Bundle Service
 Orchestrates the full research flow: query analysis, report generation,
 and automatic bundling into downloadable PDF and DOCX documents.
 """
+
 import os
 import json
 import time
@@ -15,7 +16,6 @@ from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 from datetime import datetime
 from loguru import logger
-
 
 RESEARCH_BUNDLE_DIR = Path(tempfile.gettempdir()) / "amaniquery_research"
 RESEARCH_BUNDLE_DIR.mkdir(parents=True, exist_ok=True)
@@ -66,9 +66,13 @@ class ResearchBundle:
                 base["sources"] = raw.get("sources", [])
                 base["analysis"] = raw
             if base["has_pdf"]:
-                base["download_urls"]["pdf"] = f"/research/download/{self.bundle_id}/pdf"
+                base["download_urls"][
+                    "pdf"
+                ] = f"/research/download/{self.bundle_id}/pdf"
             if base["has_docx"]:
-                base["download_urls"]["docx"] = f"/research/download/{self.bundle_id}/docx"
+                base["download_urls"][
+                    "docx"
+                ] = f"/research/download/{self.bundle_id}/docx"
         if self.error:
             base["error"] = self.error
         return base
@@ -83,8 +87,13 @@ class ResearchBundleService:
       4. Return bundle with download URLs
     """
 
-    def __init__(self, research_module=None, agentic_research_module=None,
-                 report_generator=None, cache_manager=None):
+    def __init__(
+        self,
+        research_module=None,
+        agentic_research_module=None,
+        report_generator=None,
+        cache_manager=None,
+    ):
         self.research_module = research_module
         self.agentic_research_module = agentic_research_module
         self.report_generator = report_generator
@@ -103,8 +112,11 @@ class ResearchBundleService:
         while True:
             time.sleep(120)
             now = time.time()
-            stale = [bid for bid, b in self._bundles.items()
-                     if now - b.created_at > _MAX_BUNDLE_AGE]
+            stale = [
+                bid
+                for bid, b in self._bundles.items()
+                if now - b.created_at > _MAX_BUNDLE_AGE
+            ]
             for bid in stale:
                 bundle = self._bundles.pop(bid, None)
                 if bundle:
@@ -119,10 +131,14 @@ class ResearchBundleService:
                 except Exception:
                     pass
 
-    async def conduct_research(self, query: str, context: Optional[Dict] = None,
-                               session_id: Optional[str] = None,
-                               generate_pdf: bool = True,
-                               generate_docx: bool = True) -> Dict[str, Any]:
+    async def conduct_research(
+        self,
+        query: str,
+        context: Optional[Dict] = None,
+        session_id: Optional[str] = None,
+        generate_pdf: bool = True,
+        generate_docx: bool = True,
+    ) -> Dict[str, Any]:
         """
         Full research flow: analyze → report → bundle documents.
         Returns bundle metadata with download URLs.
@@ -140,7 +156,9 @@ class ResearchBundleService:
                 raise RuntimeError("No research module available")
 
             logger.info(f"[ResearchBundle:{bundle_id}] Analyzing query...")
-            if hasattr(module, 'analyze_legal_query') and asyncio.iscoroutinefunction(module.analyze_legal_query):
+            if hasattr(module, "analyze_legal_query") and asyncio.iscoroutinefunction(
+                module.analyze_legal_query
+            ):
                 analysis = await module.analyze_legal_query(query, context)
             else:
                 analysis = module.analyze_legal_query(query, context)
@@ -164,7 +182,9 @@ class ResearchBundleService:
                         bundle.report_content = report_content
                         bundle.report_metadata = report_metadata
                 except Exception as e:
-                    logger.warning(f"[ResearchBundle:{bundle_id}] Report generation failed: {e}")
+                    logger.warning(
+                        f"[ResearchBundle:{bundle_id}] Report generation failed: {e}"
+                    )
 
             # Step 3: Generate downloadable documents
             if generate_pdf:
@@ -173,7 +193,9 @@ class ResearchBundleService:
                     pdf_path = self._generate_pdf(analysis, bundle_id, report_content)
                     bundle.pdf_path = pdf_path
                 except Exception as e:
-                    logger.warning(f"[ResearchBundle:{bundle_id}] PDF generation failed: {e}")
+                    logger.warning(
+                        f"[ResearchBundle:{bundle_id}] PDF generation failed: {e}"
+                    )
 
             if generate_docx:
                 try:
@@ -181,7 +203,9 @@ class ResearchBundleService:
                     docx_path = self._generate_docx(analysis, bundle_id, report_content)
                     bundle.docx_path = docx_path
                 except Exception as e:
-                    logger.warning(f"[ResearchBundle:{bundle_id}] DOCX generation failed: {e}")
+                    logger.warning(
+                        f"[ResearchBundle:{bundle_id}] DOCX generation failed: {e}"
+                    )
 
             bundle.status = "completed"
             logger.info(f"[ResearchBundle:{bundle_id}] Research complete")
@@ -201,14 +225,24 @@ class ResearchBundleService:
             bundle.error = str(e)
             return bundle.to_dict()
 
-    def _generate_pdf(self, analysis: Dict[str, Any], bundle_id: str,
-                      report_content: Optional[str] = None) -> str:
+    def _generate_pdf(
+        self,
+        analysis: Dict[str, Any],
+        bundle_id: str,
+        report_content: Optional[str] = None,
+    ) -> str:
         try:
             from reportlab.lib import colors
             from reportlab.lib.pagesizes import A4
             from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-            from reportlab.platypus import (SimpleDocTemplate, Paragraph, Spacer,
-                                            PageBreak, Table, TableStyle)
+            from reportlab.platypus import (
+                SimpleDocTemplate,
+                Paragraph,
+                Spacer,
+                PageBreak,
+                Table,
+                TableStyle,
+            )
             from reportlab.lib.units import inch
         except ImportError:
             raise ImportError("reportlab required. Run: pip install reportlab")
@@ -217,15 +251,28 @@ class ResearchBundleService:
         doc = SimpleDocTemplate(pdf_path, pagesize=A4)
         styles = getSampleStyleSheet()
 
-        title_style = ParagraphStyle('CustomTitle', parent=styles['Heading1'],
-                                     fontSize=18, spaceAfter=20, alignment=1)
-        heading_style = ParagraphStyle('CustomHeading', parent=styles['Heading2'],
-                                       fontSize=14, spaceAfter=12,
-                                       textColor=colors.HexColor("#1a365d"))
-        sub_style = ParagraphStyle('CustomSub', parent=styles['Heading3'],
-                                   fontSize=12, spaceAfter=8,
-                                   textColor=colors.HexColor("#2d3748"))
-        normal = styles['Normal']
+        title_style = ParagraphStyle(
+            "CustomTitle",
+            parent=styles["Heading1"],
+            fontSize=18,
+            spaceAfter=20,
+            alignment=1,
+        )
+        heading_style = ParagraphStyle(
+            "CustomHeading",
+            parent=styles["Heading2"],
+            fontSize=14,
+            spaceAfter=12,
+            textColor=colors.HexColor("#1a365d"),
+        )
+        sub_style = ParagraphStyle(
+            "CustomSub",
+            parent=styles["Heading3"],
+            fontSize=12,
+            spaceAfter=8,
+            textColor=colors.HexColor("#2d3748"),
+        )
+        normal = styles["Normal"]
         normal.fontSize = 10
         normal.leading = 14
 
@@ -235,17 +282,27 @@ class ResearchBundleService:
         story.append(Spacer(1, 2 * inch))
         story.append(Paragraph("RESEARCH REPORT", title_style))
         story.append(Spacer(1, 0.3 * inch))
-        story.append(Paragraph("AmaniQuery Research Intelligence", styles['Heading2']))
+        story.append(Paragraph("AmaniQuery Research Intelligence", styles["Heading2"]))
         story.append(Spacer(1, 0.5 * inch))
-        story.append(Paragraph(
-            f"<b>Query:</b> {analysis.get('original_query', 'Research Query')}", normal))
+        story.append(
+            Paragraph(
+                f"<b>Query:</b> {analysis.get('original_query', 'Research Query')}",
+                normal,
+            )
+        )
         story.append(Spacer(1, 0.15 * inch))
-        story.append(Paragraph(
-            f"<b>Generated:</b> {analysis.get('research_timestamp', datetime.utcnow().isoformat())}",
-            normal))
+        story.append(
+            Paragraph(
+                f"<b>Generated:</b> {analysis.get('research_timestamp', datetime.utcnow().isoformat())}",
+                normal,
+            )
+        )
         story.append(Spacer(1, 0.15 * inch))
-        story.append(Paragraph(
-            f"<b>Confidence:</b> {analysis.get('report_confidence', 'N/A')}", normal))
+        story.append(
+            Paragraph(
+                f"<b>Confidence:</b> {analysis.get('report_confidence', 'N/A')}", normal
+            )
+        )
         story.append(PageBreak())
 
         # Analysis sections
@@ -275,11 +332,13 @@ class ResearchBundleService:
                 if isinstance(law, str):
                     story.append(Paragraph(f"• {law}", normal))
                 elif isinstance(law, dict):
-                    story.append(Paragraph(
-                        f"<b>{law.get('law_name', 'Law')}</b>", sub_style))
-                    if law.get('citation'):
-                        story.append(Paragraph(
-                            f"<i>Citation:</i> {law['citation']}", normal))
+                    story.append(
+                        Paragraph(f"<b>{law.get('law_name', 'Law')}</b>", sub_style)
+                    )
+                    if law.get("citation"):
+                        story.append(
+                            Paragraph(f"<i>Citation:</i> {law['citation']}", normal)
+                        )
             story.append(Spacer(1, 0.2 * inch))
 
         if legal_analysis:
@@ -326,16 +385,24 @@ class ResearchBundleService:
 
         # Disclaimer
         story.append(Spacer(1, 0.3 * inch))
-        story.append(Paragraph(
-            "<i>This report is for informational purposes only and does not "
-            "constitute legal advice. Consult a qualified legal professional "
-            "for advice specific to your situation.</i>", normal))
+        story.append(
+            Paragraph(
+                "<i>This report is for informational purposes only and does not "
+                "constitute legal advice. Consult a qualified legal professional "
+                "for advice specific to your situation.</i>",
+                normal,
+            )
+        )
 
         doc.build(story)
         return pdf_path
 
-    def _generate_docx(self, analysis: Dict[str, Any], bundle_id: str,
-                       report_content: Optional[str] = None) -> str:
+    def _generate_docx(
+        self,
+        analysis: Dict[str, Any],
+        bundle_id: str,
+        report_content: Optional[str] = None,
+    ) -> str:
         try:
             from docx import Document
             from docx.shared import Inches, Pt, RGBColor
@@ -354,9 +421,9 @@ class ResearchBundleService:
 
         doc.add_paragraph(f"Query: {analysis.get('original_query', 'Research Query')}")
         doc.add_paragraph(
-            f"Generated: {analysis.get('research_timestamp', datetime.utcnow().isoformat())}")
-        doc.add_paragraph(
-            f"Confidence: {analysis.get('report_confidence', 'N/A')}")
+            f"Generated: {analysis.get('research_timestamp', datetime.utcnow().isoformat())}"
+        )
+        doc.add_paragraph(f"Confidence: {analysis.get('report_confidence', 'N/A')}")
         doc.add_page_break()
 
         raw_analysis = analysis.get("analysis", analysis)

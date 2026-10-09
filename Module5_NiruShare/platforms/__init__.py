@@ -1,6 +1,7 @@
 """
 Platform plugins package
 """
+
 from .base_platform import BasePlatform, PlatformMetadata
 from .registry import PlatformRegistry
 from .twitter_platform import TwitterPlatform
@@ -31,4 +32,3 @@ __all__ = [
     "BlueskyPlatform",
     "TikTokPlatform",
 ]
-

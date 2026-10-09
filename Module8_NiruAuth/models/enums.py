@@ -1,11 +1,13 @@
 """
 Enums for authentication and authorization
 """
+
 from enum import Enum
 
 
 class AuthMethod(str, Enum):
     """Authentication methods"""
+
     API_KEY = "api_key"
     OAUTH2 = "oauth2"
     JWT = "jwt"
@@ -15,12 +17,14 @@ class AuthMethod(str, Enum):
 
 class RoleType(str, Enum):
     """Role types"""
+
     USER = "user"
     INTEGRATION = "integration"
 
 
 class UserStatus(str, Enum):
     """User account status"""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     SUSPENDED = "suspended"
@@ -29,6 +33,7 @@ class UserStatus(str, Enum):
 
 class IntegrationStatus(str, Enum):
     """Integration status"""
+
     ACTIVE = "active"
     INACTIVE = "inactive"
     SUSPENDED = "suspended"
@@ -37,6 +42,7 @@ class IntegrationStatus(str, Enum):
 
 class PermissionResource(str, Enum):
     """Permission resources"""
+
     QUERY = "query"
     RESEARCH = "research"
     ADMIN = "admin"
@@ -52,9 +58,9 @@ class PermissionResource(str, Enum):
 
 class PermissionAction(str, Enum):
     """Permission actions"""
+
     READ = "read"
     WRITE = "write"
     DELETE = "delete"
     MANAGE = "manage"
     EXECUTE = "execute"
-

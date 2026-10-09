@@ -1,6 +1,7 @@
 """
 Tool & API Layer - Autonomous tool use and tool-chaining
 """
+
 from .tool_registry import ToolRegistry
 from .web_search import WebSearchTool
 from .twitter_scraper import TwitterScraperTool
@@ -24,4 +25,3 @@ __all__ = [
     "EmailDrafterTool",
     "KnowledgeBaseSearchTool",
 ]
-

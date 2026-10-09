@@ -85,10 +85,10 @@ SPIDER_CONFIGS = {
 def get_spider_config(spider_name):
     """
     Get configuration for a specific spider
-    
+
     Args:
         spider_name: Name of the spider
-        
+
     Returns:
         dict: Configuration dictionary or empty dict if not found
     """
@@ -98,18 +98,18 @@ def get_spider_config(spider_name):
 def apply_spider_config(spider):
     """
     Apply spider-specific configuration to a spider instance
-    
+
     Args:
         spider: Spider instance to configure
     """
     config = get_spider_config(spider.name)
-    
+
     if not config:
         return
-    
+
     # Apply custom settings from config
-    if not hasattr(spider, 'custom_settings'):
+    if not hasattr(spider, "custom_settings"):
         spider.custom_settings = {}
-    
+
     spider.custom_settings.update(config)
     spider.logger.info(f"Applied custom config for {spider.name}: {config}")

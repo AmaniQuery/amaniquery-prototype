@@ -19,6 +19,7 @@ from .tool_registry import ToolRegistry
 @dataclass
 class ToolSchema:
     """Normalized schema for a tool, compatible with OpenAI function calling format."""
+
     name: str
     description: str
     parameters: Dict[str, Any]
@@ -42,7 +43,9 @@ def _extract_pydantic_schema(tool: Any) -> Optional[Dict[str, Any]]:
     return None
 
 
-def _extract_function_signature(tool: Any, method_name: str = "execute") -> Optional[Dict[str, Any]]:
+def _extract_function_signature(
+    tool: Any, method_name: str = "execute"
+) -> Optional[Dict[str, Any]]:
     """Extract schema from a function signature using type hints."""
     method = None
     if hasattr(tool, method_name):
@@ -81,7 +84,9 @@ def _extract_function_signature(tool: Any, method_name: str = "execute") -> Opti
             "required": required,
         }
     except (ValueError, TypeError) as e:
-        logger.debug(f"Could not extract signature for {getattr(tool, 'name', 'unknown')}: {e}")
+        logger.debug(
+            f"Could not extract signature for {getattr(tool, 'name', 'unknown')}: {e}"
+        )
         return None
 
 
@@ -124,7 +129,11 @@ def get_tool_schema(tool: Any, name: Optional[str] = None) -> ToolSchema:
     - Plain objects with execute() method + name/description attrs
     - Callable functions
     """
-    tool_name = name or getattr(tool, "name", tool.__class__.__name__ if hasattr(tool, "__class__") else "unknown")
+    tool_name = name or getattr(
+        tool,
+        "name",
+        tool.__class__.__name__ if hasattr(tool, "__class__") else "unknown",
+    )
     description = _get_tool_description(tool)
 
     # Try Pydantic schema first (BaseTool subclasses)

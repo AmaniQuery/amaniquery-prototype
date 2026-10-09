@@ -14,10 +14,10 @@ Components:
 """
 
 from .teacher_student import (
-    TeacherStudentPair, 
-    ModelWrapper, 
-    BiEncoderWrapper, 
-    CrossEncoderWrapper
+    TeacherStudentPair,
+    ModelWrapper,
+    BiEncoderWrapper,
+    CrossEncoderWrapper,
 )
 from .distillation_cascade import DistillationCascade
 
@@ -26,5 +26,5 @@ __all__ = [
     "ModelWrapper",
     "BiEncoderWrapper",
     "CrossEncoderWrapper",
-    "DistillationCascade"
+    "DistillationCascade",
 ]

@@ -1,6 +1,7 @@
 """
 Authentication and Authorization Routers
 """
+
 from .user_router import router as user_router
 from .admin_router import router as admin_router
 from .integration_router import router as integration_router
@@ -22,4 +23,3 @@ __all__ = [
     "session_router",
     "mfa_router",
 ]
-

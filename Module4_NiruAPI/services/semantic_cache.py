@@ -7,11 +7,50 @@ from typing import Dict, Optional, List, Any
 from loguru import logger
 from sklearn.metrics.pairwise import cosine_similarity
 
-
-_STOP = {"a","an","the","is","are","was","were","be","been","being","have","has",
-         "had","do","does","did","will","would","could","should","may","might",
-         "shall","can","to","of","in","for","on","with","at","by","from","as",
-         "into","through","it","its","this","that","these","those"}
+_STOP = {
+    "a",
+    "an",
+    "the",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "have",
+    "has",
+    "had",
+    "do",
+    "does",
+    "did",
+    "will",
+    "would",
+    "could",
+    "should",
+    "may",
+    "might",
+    "shall",
+    "can",
+    "to",
+    "of",
+    "in",
+    "for",
+    "on",
+    "with",
+    "at",
+    "by",
+    "from",
+    "as",
+    "into",
+    "through",
+    "it",
+    "its",
+    "this",
+    "that",
+    "these",
+    "those",
+}
 
 
 def _normalize(q: str) -> str:
@@ -26,7 +65,7 @@ class SemanticCache:
     Semantic Cache for RAG Pipeline.
     Uses cosine similarity to find cached responses for similar queries.
     """
-    
+
     def __init__(self, threshold: float = 0.85, max_size: int = 1000):
         self.cache: List[Dict[str, Any]] = []
         self.threshold = threshold
@@ -51,7 +90,9 @@ class SemanticCache:
             logger.warning(f"Failed to generate embedding for cache: {e}")
             return None
 
-    def get(self, query: str, top_k: int = 5, category: Optional[str] = None) -> Optional[Dict]:
+    def get(
+        self, query: str, top_k: int = 5, category: Optional[str] = None
+    ) -> Optional[Dict]:
         """Retrieve cached result if semantically similar query exists"""
         if not self.embedding_model:
             return None
@@ -81,8 +122,7 @@ class SemanticCache:
                 continue
 
             score = cosine_similarity(
-                query_embedding.reshape(1, -1), 
-                entry["embedding"].reshape(1, -1)
+                query_embedding.reshape(1, -1), entry["embedding"].reshape(1, -1)
             )[0][0]
 
             if score > best_score:
@@ -90,12 +130,16 @@ class SemanticCache:
                 best_entry = entry
 
         if best_score >= self.threshold:
-            logger.info(f"Semantic cache hit! Score: {best_score:.4f} for query: '{query}'")
+            logger.info(
+                f"Semantic cache hit! Score: {best_score:.4f} for query: '{query}'"
+            )
             return best_entry["result"]
-        
+
         return None
 
-    def set(self, query: str, result: Dict, top_k: int = 5, category: Optional[str] = None):
+    def set(
+        self, query: str, result: Dict, top_k: int = 5, category: Optional[str] = None
+    ):
         """Cache the result for a query"""
         if not self.embedding_model:
             return
@@ -115,6 +159,6 @@ class SemanticCache:
             "result": result,
             "top_k": top_k,
             "category": category,
-            "timestamp": time.time()
+            "timestamp": time.time(),
         }
         self.cache.append(entry)

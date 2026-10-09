@@ -1,10 +1,12 @@
 """Bill Status Tool - Look up Kenyan parliamentary bill status and votes"""
+
 from typing import Dict, Any, Optional
 from loguru import logger
 
 
 class BillStatusTool:
     """Look up Kenyan parliamentary bill status and voting information"""
+
     name = "bill_status"
     description = "Get current status, voting results, and metadata for a Kenyan parliamentary bill"
 
@@ -15,12 +17,17 @@ class BillStatusTool:
         try:
             logger.info(f"[Tool] bill_status: '{bill_name}'")
             if not self._metadata_manager:
-                return {"success": False, "error": "Metadata manager not initialized", "suggestion": "Try kb_search for bill information instead"}
+                return {
+                    "success": False,
+                    "error": "Metadata manager not initialized",
+                    "suggestion": "Try kb_search for bill information instead",
+                }
 
             bill_docs = self._metadata_manager.filter_by_category("bills", limit=50)
             bill_name_lower = bill_name.lower()
             matching = [
-                doc for doc in bill_docs
+                doc
+                for doc in bill_docs
                 if bill_name_lower in doc.get("title", "").lower()
                 or bill_name_lower in doc.get("source_name", "").lower()
             ]

@@ -11,19 +11,19 @@ Two backends are supported:
 Quick Start:
     # Using APScheduler (standalone)
     python -m Module1_NiruSpider.scheduler.scheduler_service --backend apscheduler
-    
+
     # Using Celery (requires Redis)
     celery -A Module1_NiruSpider.scheduler.celery_app worker --beat -Q crawling
 
 Programmatic Usage:
     from Module1_NiruSpider.scheduler import SchedulerService, CrawlerType, PipelineTask
-    
+
     service = SchedulerService(backend="apscheduler")
     service.start()
-    
+
     # Manually trigger a crawler
     service.trigger_crawler(CrawlerType.NEWS_RSS)
-    
+
     # Manually trigger a pipeline task
     service.trigger_pipeline(PipelineTask.PROCESS_DOCUMENTS)
 """
@@ -64,7 +64,6 @@ __all__ = [
     "generate_embeddings",
     "populate_vector_stores",
     "run_full_pipeline",
-    
     # Scheduler Service
     "SchedulerService",
     "SchedulerConfig",
@@ -73,9 +72,7 @@ __all__ = [
     "CrawlerRunner",
     "APSchedulerBackend",
     "CeleryBackend",
-    
     # Pipeline
     "PipelineTask",
     "PipelineSchedule",
 ]
-

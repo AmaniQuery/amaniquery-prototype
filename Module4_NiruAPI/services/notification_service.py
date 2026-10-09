@@ -1,6 +1,7 @@
 """
 Notification Service - Manage subscriptions and send notifications
 """
+
 import os
 import sys
 from pathlib import Path
@@ -19,7 +20,7 @@ from Module3_NiruDB.notification_models import (
     SubscriptionResponse,
     create_database_engine,
     create_tables,
-    get_db_session
+    get_db_session,
 )
 from Module4_NiruAPI.services.talksasa_service import TalksasaNotificationService
 
@@ -36,7 +37,9 @@ class NotificationService:
             config_manager: ConfigManager instance for API tokens
         """
         if database_url is None:
-            database_url = os.getenv("DATABASE_URL", "postgresql://localhost/amaniquery")
+            database_url = os.getenv(
+                "DATABASE_URL", "postgresql://localhost/amaniquery"
+            )
 
         # Handle Neon connection pooling
         if "neon.tech" in database_url and "pooler" in database_url:
@@ -55,7 +58,9 @@ class NotificationService:
             api_token = config_manager.get_config("TALKSASA_API_TOKEN")
             sender_id = config_manager.get_config("TALKSASA_SENDER_ID")
 
-        self.talksasa_service = TalksasaNotificationService(api_token=api_token, sender_id=sender_id)
+        self.talksasa_service = TalksasaNotificationService(
+            api_token=api_token, sender_id=sender_id
+        )
         logger.info("Notification service initialized")
 
     def _get_db_session(self):
@@ -75,9 +80,11 @@ class NotificationService:
         db = self._get_db_session()
         try:
             # Check if subscription exists
-            existing = db.query(NotificationSubscription).filter_by(
-                phone_number=subscription.phone_number
-            ).first()
+            existing = (
+                db.query(NotificationSubscription)
+                .filter_by(phone_number=subscription.phone_number)
+                .first()
+            )
 
             # Parse digest_time if provided
             digest_time_obj = None
@@ -109,7 +116,7 @@ class NotificationService:
                     digest_time=digest_time_obj,
                     categories=subscription.categories,
                     sources=subscription.sources,
-                    is_active=True
+                    is_active=True,
                 )
                 db.add(new_sub)
                 db.commit()
@@ -139,9 +146,11 @@ class NotificationService:
         """
         db = self._get_db_session()
         try:
-            subscription = db.query(NotificationSubscription).filter_by(
-                phone_number=phone_number
-            ).first()
+            subscription = (
+                db.query(NotificationSubscription)
+                .filter_by(phone_number=phone_number)
+                .first()
+            )
 
             if subscription:
                 subscription.is_active = False
@@ -158,7 +167,9 @@ class NotificationService:
         finally:
             db.close()
 
-    def update_subscription(self, phone_number: str, update: SubscriptionUpdate) -> Optional[SubscriptionResponse]:
+    def update_subscription(
+        self, phone_number: str, update: SubscriptionUpdate
+    ) -> Optional[SubscriptionResponse]:
         """
         Update subscription preferences
 
@@ -171,9 +182,11 @@ class NotificationService:
         """
         db = self._get_db_session()
         try:
-            subscription = db.query(NotificationSubscription).filter_by(
-                phone_number=phone_number
-            ).first()
+            subscription = (
+                db.query(NotificationSubscription)
+                .filter_by(phone_number=phone_number)
+                .first()
+            )
 
             if not subscription:
                 return None
@@ -221,9 +234,11 @@ class NotificationService:
         """
         db = self._get_db_session()
         try:
-            subscription = db.query(NotificationSubscription).filter_by(
-                phone_number=phone_number
-            ).first()
+            subscription = (
+                db.query(NotificationSubscription)
+                .filter_by(phone_number=phone_number)
+                .first()
+            )
 
             if subscription:
                 return self._subscription_to_response(subscription)
@@ -239,7 +254,7 @@ class NotificationService:
         self,
         schedule_type: Optional[str] = None,
         categories: Optional[List[str]] = None,
-        sources: Optional[List[str]] = None
+        sources: Optional[List[str]] = None,
     ) -> List[SubscriptionResponse]:
         """
         Get active subscriptions with optional filters
@@ -268,7 +283,9 @@ class NotificationService:
                     sub_categories = sub.categories or []
                     if not any(cat in sub_categories for cat in categories):
                         # If subscription has category filters, check if they match
-                        if sub_categories and not any(cat in categories for cat in sub_categories):
+                        if sub_categories and not any(
+                            cat in categories for cat in sub_categories
+                        ):
                             continue
 
                 # Filter by sources if provided
@@ -276,7 +293,9 @@ class NotificationService:
                     sub_sources = sub.sources or []
                     if not any(src in sub_sources for src in sources):
                         # If subscription has source filters, check if they match
-                        if sub_sources and not any(src in sources for src in sub_sources):
+                        if sub_sources and not any(
+                            src in sources for src in sub_sources
+                        ):
                             continue
 
                 results.append(self._subscription_to_response(sub))
@@ -303,7 +322,9 @@ class NotificationService:
         subscribers = self.get_active_subscriptions(
             schedule_type="immediate",
             categories=[article.get("category")] if article.get("category") else None,
-            sources=[article.get("source_name")] if article.get("source_name") else None
+            sources=(
+                [article.get("source_name")] if article.get("source_name") else None
+            ),
         )
 
         sent_count = 0
@@ -318,18 +339,24 @@ class NotificationService:
                 result = self.talksasa_service.send_notification(
                     recipient=subscriber.phone_number,
                     message=message,
-                    notification_type=subscriber.notification_type
+                    notification_type=subscriber.notification_type,
                 )
 
                 if result.get("status") == "success":
                     sent_count += 1
                 else:
-                    logger.warning(f"Failed to send notification to {subscriber.phone_number}: {result.get('message')}")
+                    logger.warning(
+                        f"Failed to send notification to {subscriber.phone_number}: {result.get('message')}"
+                    )
 
             except Exception as e:
-                logger.error(f"Error sending notification to {subscriber.phone_number}: {e}")
+                logger.error(
+                    f"Error sending notification to {subscriber.phone_number}: {e}"
+                )
 
-        logger.info(f"Sent {sent_count} article notifications for: {article.get('title', 'Unknown')}")
+        logger.info(
+            f"Sent {sent_count} article notifications for: {article.get('title', 'Unknown')}"
+        )
         return sent_count
 
     def send_digest_notifications(self) -> int:
@@ -356,10 +383,15 @@ class NotificationService:
             if subscriber.digest_time:
                 try:
                     # Allow 30 minute window
-                    digest_time = datetime.strptime(subscriber.digest_time, "%H:%M").time()
+                    digest_time = datetime.strptime(
+                        subscriber.digest_time, "%H:%M"
+                    ).time()
                     time_diff = abs(
-                        (datetime.combine(datetime.today(), current_time) -
-                         datetime.combine(datetime.today(), digest_time)).total_seconds() / 60
+                        (
+                            datetime.combine(datetime.today(), current_time)
+                            - datetime.combine(datetime.today(), digest_time)
+                        ).total_seconds()
+                        / 60
                     )
                     if time_diff > 30:
                         continue
@@ -374,7 +406,7 @@ class NotificationService:
                     sources=subscriber.sources,
                     categories=subscriber.categories,
                     date_from=date_from,
-                    limit=10
+                    limit=10,
                 )
 
                 if not articles:
@@ -385,13 +417,15 @@ class NotificationService:
                 result = self.talksasa_service.send_notification(
                     recipient=subscriber.phone_number,
                     message=message,
-                    notification_type=subscriber.notification_type
+                    notification_type=subscriber.notification_type,
                 )
 
                 if result.get("status") == "success":
                     sent_count += 1
                 else:
-                    logger.warning(f"Failed to send digest to {subscriber.phone_number}: {result.get('message')}")
+                    logger.warning(
+                        f"Failed to send digest to {subscriber.phone_number}: {result.get('message')}"
+                    )
 
             except Exception as e:
                 logger.error(f"Error sending digest to {subscriber.phone_number}: {e}")
@@ -399,7 +433,9 @@ class NotificationService:
         logger.info(f"Sent {sent_count} daily digest notifications")
         return sent_count
 
-    def _article_matches_subscription(self, article: Dict, subscription: SubscriptionResponse) -> bool:
+    def _article_matches_subscription(
+        self, article: Dict, subscription: SubscriptionResponse
+    ) -> bool:
         """Check if article matches subscription filters"""
         # Check categories
         if subscription.categories:
@@ -425,7 +461,7 @@ class NotificationService:
         # Truncate title if needed
         max_title_len = 80
         if len(title) > max_title_len:
-            title = title[:max_title_len - 3] + "..."
+            title = title[: max_title_len - 3] + "..."
 
         message = f"[NEWS] {title}\n"
         if category:
@@ -464,7 +500,9 @@ class NotificationService:
 
         return message
 
-    def _subscription_to_response(self, subscription: NotificationSubscription) -> SubscriptionResponse:
+    def _subscription_to_response(
+        self, subscription: NotificationSubscription
+    ) -> SubscriptionResponse:
         """Convert database model to response model"""
         digest_time_str = None
         if subscription.digest_time:
@@ -480,6 +518,5 @@ class NotificationService:
             sources=subscription.sources,
             is_active=subscription.is_active,
             created_at=subscription.created_at,
-            updated_at=subscription.updated_at
+            updated_at=subscription.updated_at,
         )
-

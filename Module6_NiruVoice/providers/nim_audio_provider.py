@@ -2,6 +2,7 @@
 NVIDIA NIM Audio Provider for Voice Agent
 Provides STT (speech-to-text) and TTS (text-to-speech) via NVIDIA NIM's OpenAI-compatible API
 """
+
 import os
 from typing import Optional, Dict, Any
 from pathlib import Path
@@ -26,9 +27,15 @@ class NimAudioProvider:
         tts_voice: str = "default",
     ):
         self.api_key = api_key or os.getenv("NVIDIA_NIM_API_KEY", "")
-        self.base_url = base_url or os.getenv("NVIDIA_NIM_BASE_URL", "https://integrate.api.nvidia.com/v1")
-        self.stt_model = stt_model or os.getenv("NIM_STT_MODEL", "whisper-large-v3-turbo")
-        self.tts_model = tts_model or os.getenv("NIM_TTS_MODEL", "nvidia/parakeet-tts-1.1b")
+        self.base_url = base_url or os.getenv(
+            "NVIDIA_NIM_BASE_URL", "https://integrate.api.nvidia.com/v1"
+        )
+        self.stt_model = stt_model or os.getenv(
+            "NIM_STT_MODEL", "whisper-large-v3-turbo"
+        )
+        self.tts_model = tts_model or os.getenv(
+            "NIM_TTS_MODEL", "nvidia/parakeet-tts-1.1b"
+        )
         self.tts_voice = tts_voice or os.getenv("NIM_TTS_VOICE", "default")
         self._client = None
         self.is_loaded = False
@@ -43,6 +50,7 @@ class NimAudioProvider:
         if self._client is None:
             try:
                 from openai import OpenAI
+
                 self._client = OpenAI(
                     api_key=self.api_key,
                     base_url=self.base_url,
@@ -136,6 +144,7 @@ class NimAudioProvider:
             Transcribed text
         """
         import tempfile
+
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
             tmp.write(audio_bytes)
             tmp_path = tmp.name
@@ -162,6 +171,7 @@ class NimAudioProvider:
             WAV audio bytes
         """
         import tempfile
+
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
             tmp_path = tmp.name
         try:

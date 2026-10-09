@@ -17,6 +17,7 @@ COLLECTION_NAME = "kenyan_sentiments_2025"
 MODEL_NAME = "Davlan/afriberta-large"
 BATCH_SIZE = 10000
 
+
 class BatchProcessor:
     def __init__(self):
         print(f"Loading model {MODEL_NAME}...")
@@ -25,23 +26,19 @@ class BatchProcessor:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model.to(self.device)
         self.model.eval()
-        
+
         self.client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY)
 
     def encode_batch(self, texts: List[str]) -> List[List[float]]:
         inputs = self.tokenizer(
-            texts, 
-            padding=True, 
-            truncation=True, 
-            max_length=128, 
-            return_tensors="pt"
+            texts, padding=True, truncation=True, max_length=128, return_tensors="pt"
         ).to(self.device)
-        
+
         with torch.no_grad():
             outputs = self.model(**inputs)
             # Use CLS token embedding (first token)
             embeddings = outputs.last_hidden_state[:, 0, :].cpu().numpy()
-            
+
         return embeddings.tolist()
 
     def process_and_upsert(self, data_iterator: Iterator[Dict]):
@@ -62,15 +59,15 @@ class BatchProcessor:
         """
         batch_points = []
         batch_texts = []
-        
+
         print("Starting batch processing...")
         for item in tqdm(data_iterator):
             text = item.get("text", "")
             if not text:
                 continue
-                
+
             batch_texts.append(text)
-            
+
             # Prepare payload
             payload = {
                 "text": text,
@@ -80,19 +77,19 @@ class BatchProcessor:
                 "created_at": item.get("created_at"),
                 "topic": item.get("topic"),
                 "intensity": item.get("intensity"),
-                "is_sarcasm": item.get("is_sarcasm")
+                "is_sarcasm": item.get("is_sarcasm"),
             }
-            
+
             point_id = item.get("id", str(uuid.uuid4()))
-            
+
             # We store the point temporarily without vector, will add vector after batch encoding
             batch_points.append((point_id, payload))
-            
+
             if len(batch_points) >= BATCH_SIZE:
                 self._flush_batch(batch_points, batch_texts)
                 batch_points = []
                 batch_texts = []
-        
+
         # Flush remaining
         if batch_points:
             self._flush_batch(batch_points, batch_texts)
@@ -100,28 +97,23 @@ class BatchProcessor:
     def _flush_batch(self, points_data, texts):
         try:
             vectors = self.encode_batch(texts)
-            
+
             points = [
-                models.PointStruct(
-                    id=pid,
-                    vector=vec,
-                    payload=payload
-                )
+                models.PointStruct(id=pid, vector=vec, payload=payload)
                 for (pid, payload), vec in zip(points_data, vectors)
             ]
-            
+
             self.client.upsert(
-                collection_name=COLLECTION_NAME,
-                points=points,
-                wait=True
+                collection_name=COLLECTION_NAME, points=points, wait=True
             )
         except Exception as e:
             print(f"Error upserting batch: {e}")
 
+
 if __name__ == "__main__":
     # Example usage with dummy data
     processor = BatchProcessor()
-    
+
     def dummy_data_gen():
         for i in range(20):
             yield {
@@ -132,7 +124,7 @@ if __name__ == "__main__":
                 "created_at": "2025-11-27T10:00:00Z",
                 "topic": "Politics",
                 "intensity": 0.8,
-                "is_sarcasm": False
+                "is_sarcasm": False,
             }
-            
+
     processor.process_and_upsert(dummy_data_gen())

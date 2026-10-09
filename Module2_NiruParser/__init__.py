@@ -13,10 +13,15 @@ from .enrichers import MetadataEnricher, LegalMetadataEnricher
 from .embedders import TextEmbedder, VisionEmbedder
 
 __all__ = [
-    "ProcessingPipeline", "Config",
-    "HTMLExtractor", "PDFExtractor", "TranscriptExtractor",
+    "ProcessingPipeline",
+    "Config",
+    "HTMLExtractor",
+    "PDFExtractor",
+    "TranscriptExtractor",
     "TextCleaner",
     "TextChunker",
-    "MetadataEnricher", "LegalMetadataEnricher",
-    "TextEmbedder", "VisionEmbedder",
+    "MetadataEnricher",
+    "LegalMetadataEnricher",
+    "TextEmbedder",
+    "VisionEmbedder",
 ]

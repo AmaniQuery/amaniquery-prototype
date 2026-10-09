@@ -50,7 +50,7 @@ class BlueskyPlatform(BasePlatform):
         base_url = "https://bsky.app/intent/compose"
         text_param = content
         if url:
-             text_param += f"\n\n{url}"
+            text_param += f"\n\n{url}"
         params = {"text": text_param}
         return f"{base_url}?{urllib.parse.urlencode(params)}"
 
@@ -62,13 +62,17 @@ class BlueskyPlatform(BasePlatform):
         if not username or not password:
             return None
         if BlueskyClient is None:
-            raise ImportError("atproto not installed. Install with: pip install atproto")
+            raise ImportError(
+                "atproto not installed. Install with: pip install atproto"
+            )
         client = BlueskyClient()
         client.login(username, password)
         self._client = client
         return self._client
 
-    def post_content(self, content: str, media_urls: List[str] = None, auth_token: str = None) -> Dict:
+    def post_content(
+        self, content: str, media_urls: List[str] = None, auth_token: str = None
+    ) -> Dict:
         try:
             client = self._get_client()
             if client is None:

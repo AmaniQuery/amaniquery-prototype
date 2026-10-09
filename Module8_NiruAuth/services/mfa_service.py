@@ -1,6 +1,7 @@
 """
 MFA/TOTP Service for Time-based One-Time Password authentication
 """
+
 import os
 import io
 import base64
@@ -43,6 +44,7 @@ class MFAService:
     def generate_backup_codes(self, count: int = 8) -> list:
         """Generate one-time backup recovery codes"""
         import secrets
+
         return [secrets.token_hex(4).upper() for _ in range(count)]
 
 

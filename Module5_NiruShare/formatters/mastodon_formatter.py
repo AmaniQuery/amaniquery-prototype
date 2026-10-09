@@ -30,11 +30,15 @@ class MastodonFormatter(BaseFormatter):
         if sources:
             source = sources[0]
             if isinstance(source, dict):
-                url = str(source.get('url', '')).strip()
+                url = str(source.get("url", "")).strip()
                 if url:
                     toot_parts.append(f"\n\n{url}")
 
-        hashtags = self._generate_hashtags(answer, sources, max_tags=5) if include_hashtags else []
+        hashtags = (
+            self._generate_hashtags(answer, sources, max_tags=5)
+            if include_hashtags
+            else []
+        )
         if hashtags:
             hashtag_text = " " + " ".join(hashtags)
             if len("".join(toot_parts)) + len(hashtag_text) <= self.CHAR_LIMIT:

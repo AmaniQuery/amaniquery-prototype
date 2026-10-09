@@ -2,6 +2,7 @@
 Fact Check Spider - Crawls Africa Check Kenya fact-checks
 Provides verified claims, ratings, and evidence for fact-checking RAG queries
 """
+
 import scrapy
 import feedparser
 from datetime import datetime
@@ -38,7 +39,9 @@ class FactCheckSpider(scrapy.Spider):
         return spider
 
     def spider_closed(self, spider, reason):
-        self.logger.info(f"Spider closed: {reason} — Success: {self.success_count}, Errors: {self.error_count}")
+        self.logger.info(
+            f"Spider closed: {reason} — Success: {self.success_count}, Errors: {self.error_count}"
+        )
 
     def spider_error(self, failure, response, spider):
         self.error_count += 1
@@ -54,9 +57,16 @@ class FactCheckSpider(scrapy.Spider):
     ]
 
     kenya_keywords = [
-        "kenya", "kenyan", "nairobi", "ruto", "odinga",
-        "kenya's", "kenyan government", "kenyan shilling",
-        "east africa", "eac",
+        "kenya",
+        "kenyan",
+        "nairobi",
+        "ruto",
+        "odinga",
+        "kenya's",
+        "kenyan government",
+        "kenyan shilling",
+        "east africa",
+        "eac",
     ]
 
     def start_requests(self):
@@ -91,14 +101,20 @@ class FactCheckSpider(scrapy.Spider):
 
         for entry in feed.entries[:100]:
             title = entry.title.lower()
-            summary = getattr(entry, 'summary', '').lower() if hasattr(entry, 'summary') else ''
+            summary = (
+                getattr(entry, "summary", "").lower()
+                if hasattr(entry, "summary")
+                else ""
+            )
             combined = f"{title} {summary}"
 
             has_kenya = any(kw in combined for kw in self.kenya_keywords)
 
             tags = []
-            if hasattr(entry, 'tags'):
-                tags = [t.get('term', '').lower() for t in entry.tags if hasattr(t, 'get')]
+            if hasattr(entry, "tags"):
+                tags = [
+                    t.get("term", "").lower() for t in entry.tags if hasattr(t, "get")
+                ]
 
             is_kenya = has_kenya or any("kenya" in t for t in tags)
 
@@ -106,7 +122,7 @@ class FactCheckSpider(scrapy.Spider):
                 continue
 
             pub_date = None
-            if hasattr(entry, 'published'):
+            if hasattr(entry, "published"):
                 try:
                     pub_date = date_parser.parse(entry.published).isoformat()
                 except Exception:
@@ -119,7 +135,7 @@ class FactCheckSpider(scrapy.Spider):
                     "title": entry.title,
                     "source_name": feed_name,
                     "pub_date": pub_date,
-                    "summary": getattr(entry, 'summary', ''),
+                    "summary": getattr(entry, "summary", ""),
                     "tags": tags,
                 },
                 errback=self.errback_article,
@@ -131,31 +147,41 @@ class FactCheckSpider(scrapy.Spider):
         pub_date = response.meta.get("pub_date")
         rss_summary = response.meta.get("summary", "")
 
-        extracted_title = response.css('h1::text').get()
+        extracted_title = response.css("h1::text").get()
         if extracted_title:
             title = extracted_title.strip()
 
-        content_parts = response.css('article p::text, .content p::text, main p::text, .field--name-body p::text').getall()
+        content_parts = response.css(
+            "article p::text, .content p::text, main p::text, .field--name-body p::text"
+        ).getall()
         content = "\n".join(p.strip() for p in content_parts if p.strip())
 
         if not content or len(content) < 100:
             content = rss_summary if rss_summary else ""
 
-        author = response.css('.author::text, .byline::text, .field--name-field-author::text').get()
+        author = response.css(
+            ".author::text, .byline::text, .field--name-field-author::text"
+        ).get()
         if author:
             author = author.strip()
 
-        date_str = response.css('time::attr(datetime), .date::text, .field--name-field-date-published::text').get()
+        date_str = response.css(
+            "time::attr(datetime), .date::text, .field--name-field-date-published::text"
+        ).get()
         if date_str:
             pub_date = date_str.strip()
         elif not pub_date:
             pub_date = datetime.utcnow().isoformat()
 
-        rating = response.css('.rating-label::text, .fact-check-rating::text, .claim-rating::text').get()
+        rating = response.css(
+            ".rating-label::text, .fact-check-rating::text, .claim-rating::text"
+        ).get()
         if rating:
             rating = rating.strip()
 
-        claim = response.css('.claim-text::text, .claim::text, .field--name-field-claim::text').get()
+        claim = response.css(
+            ".claim-text::text, .claim::text, .field--name-field-claim::text"
+        ).get()
         if claim:
             claim = claim.strip()
 

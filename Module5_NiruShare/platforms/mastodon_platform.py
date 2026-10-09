@@ -1,6 +1,7 @@
 """
 Mastodon platform plugin
 """
+
 from typing import List, Dict, Optional, Union
 from urllib.parse import quote
 
@@ -10,11 +11,11 @@ from ..formatters.mastodon_formatter import MastodonFormatter
 
 class MastodonPlatform(BasePlatform):
     """Mastodon platform handler"""
-    
+
     def __init__(self):
         self.formatter = MastodonFormatter()
         super().__init__()
-    
+
     def get_metadata(self) -> PlatformMetadata:
         """Return Mastodon platform metadata"""
         return PlatformMetadata(
@@ -28,7 +29,7 @@ class MastodonPlatform(BasePlatform):
             requires_auth=True,
             features=["hashtags", "mentions", "links", "images", "threads"],
         )
-    
+
     def format_post(
         self,
         answer: str,
@@ -47,7 +48,7 @@ class MastodonPlatform(BasePlatform):
         if style:
             result["style"] = style
         return result
-    
+
     def generate_share_link(
         self,
         content: Union[str, List[str]],
@@ -58,10 +59,11 @@ class MastodonPlatform(BasePlatform):
         # Return a generic share URL (would need instance URL)
         text = content[0] if isinstance(content, list) else str(content)
         encoded_text = quote(text)
-        
+
         # Generic format (would need instance URL in production)
         if url:
             encoded_url = quote(url)
-            return f"https://mastodon.social/share?text={encoded_text}&url={encoded_url}"
+            return (
+                f"https://mastodon.social/share?text={encoded_text}&url={encoded_url}"
+            )
         return f"https://mastodon.social/share?text={encoded_text}"
-

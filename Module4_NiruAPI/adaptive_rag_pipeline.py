@@ -2,6 +2,7 @@
 Adaptive RAG Pipeline - AI-Powered Self-Improving System
 Advanced task identification, predictive retrieval, and continuous learning with real-time optimization
 """
+
 import os
 import json
 import time
@@ -29,6 +30,7 @@ from Module4_NiruAPI.cache import RAGCache, get_rag_cache, BlazingFastCache
 @dataclass
 class AdaptiveQuery:
     """Enhanced query with adaptive metadata"""
+
     query: str
     intent: str
     confidence: float
@@ -39,9 +41,11 @@ class AdaptiveQuery:
     timestamp: datetime
     metadata: Dict = None
 
+
 @dataclass
 class RetrievalStrategy:
     """Optimized retrieval strategy"""
+
     task_type: str
     namespaces: List[str]
     top_k: int
@@ -50,12 +54,22 @@ class RetrievalStrategy:
     timeout: float
     fallback_strategy: str
 
+
 class TaskCluster:
     """Enhanced task cluster with performance metrics"""
 
-    def __init__(self, cluster_id: str, name: str, description: str, keywords: List[str],
-                 sample_queries: List[str], document_ids: List[str], avg_response_time: float = 0.0,
-                 success_rate: float = 0.0, popularity_score: float = 0.0):
+    def __init__(
+        self,
+        cluster_id: str,
+        name: str,
+        description: str,
+        keywords: List[str],
+        sample_queries: List[str],
+        document_ids: List[str],
+        avg_response_time: float = 0.0,
+        success_rate: float = 0.0,
+        popularity_score: float = 0.0,
+    ):
         self.cluster_id = cluster_id
         self.name = name
         self.description = description
@@ -86,18 +100,18 @@ class TaskCluster:
             "success_rate": self.success_rate,
             "popularity_score": self.popularity_score,
             "performance_history": self.performance_history[-10:],  # Last 10 entries
-            "last_used": self.last_used.isoformat()
+            "last_used": self.last_used.isoformat(),
         }
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'TaskCluster':
+    def from_dict(cls, data: Dict) -> "TaskCluster":
         cluster = cls(
             cluster_id=data["cluster_id"],
             name=data["name"],
             description=data["description"],
             keywords=data["keywords"],
             sample_queries=data["sample_queries"],
-            document_ids=data["document_ids"]
+            document_ids=data["document_ids"],
         )
         cluster.created_at = datetime.fromisoformat(data["created_at"])
         cluster.updated_at = datetime.fromisoformat(data["updated_at"])
@@ -105,7 +119,7 @@ class TaskCluster:
         return cluster
 
 
-class BlazingFastBlazingFastTaskIdentificationEngine:
+class BlazingFastTaskIdentificationEngine:
     """🔥 High-performance task identification with predictive capabilities"""
 
     def __init__(self, log_directory: str = "logs", min_cluster_size: int = 5):
@@ -113,9 +127,7 @@ class BlazingFastBlazingFastTaskIdentificationEngine:
         self.min_cluster_size = min_cluster_size
         self.task_clusters: Dict[str, TaskCluster] = {}
         self.vectorizer = TfidfVectorizer(
-            max_features=1000,
-            stop_words='english',
-            ngram_range=(1, 2)
+            max_features=1000, stop_words="english", ngram_range=(1, 2)
         )
         self.cluster_model = None
         self.load_existing_clusters()
@@ -125,7 +137,7 @@ class BlazingFastBlazingFastTaskIdentificationEngine:
         cluster_file = Path("data/task_clusters.json")
         if cluster_file.exists():
             try:
-                with open(cluster_file, 'r') as f:
+                with open(cluster_file, "r") as f:
                     data = json.load(f)
                     for cluster_data in data.get("clusters", []):
                         cluster = TaskCluster.from_dict(cluster_data)
@@ -141,10 +153,10 @@ class BlazingFastBlazingFastTaskIdentificationEngine:
 
         data = {
             "clusters": [cluster.to_dict() for cluster in self.task_clusters.values()],
-            "last_updated": datetime.now().isoformat()
+            "last_updated": datetime.now().isoformat(),
         }
 
-        with open(cluster_file, 'w') as f:
+        with open(cluster_file, "w") as f:
             json.dump(data, f, indent=2)
         logger.info(f"Saved {len(self.task_clusters)} task clusters")
 
@@ -159,33 +171,55 @@ class BlazingFastBlazingFastTaskIdentificationEngine:
 
         for log_file in log_files:
             try:
-                with open(log_file, 'r', encoding='utf-8', errors='ignore') as f:
+                with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
                     for line in f:
                         # Look for query-related log entries
-                        if "Retrieving documents for query:" in line or "Incoming SMS" in line:
+                        if (
+                            "Retrieving documents for query:" in line
+                            or "Incoming SMS" in line
+                        ):
                             try:
                                 # Parse timestamp and extract query
-                                parts = line.split('|')
+                                parts = line.split("|")
                                 if len(parts) >= 3:
                                     timestamp_str = parts[0].strip()
-                                    timestamp = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f")
+                                    timestamp = datetime.strptime(
+                                        timestamp_str, "%Y-%m-%d %H:%M:%S.%f"
+                                    )
 
                                     if timestamp >= cutoff_date:
                                         # Extract query text
                                         if "Retrieving documents for query:" in line:
-                                            query_start = line.find("Retrieving documents for query:") + 32
-                                            query_text = line[query_start:].strip().rstrip('...')
+                                            query_start = (
+                                                line.find(
+                                                    "Retrieving documents for query:"
+                                                )
+                                                + 32
+                                            )
+                                            query_text = (
+                                                line[query_start:].strip().rstrip("...")
+                                            )
                                         elif "Incoming SMS" in line:
                                             query_start = line.find("Incoming SMS") + 12
-                                            query_text = line[query_start:].split(':', 1)[-1].strip()
+                                            query_text = (
+                                                line[query_start:]
+                                                .split(":", 1)[-1]
+                                                .strip()
+                                            )
                                         else:
                                             continue
 
-                                        queries.append({
-                                            "timestamp": timestamp,
-                                            "query": query_text,
-                                            "source": "api" if "Retrieving documents" in line else "sms"
-                                        })
+                                        queries.append(
+                                            {
+                                                "timestamp": timestamp,
+                                                "query": query_text,
+                                                "source": (
+                                                    "api"
+                                                    if "Retrieving documents" in line
+                                                    else "sms"
+                                                ),
+                                            }
+                                        )
                             except Exception as e:
                                 continue
             except Exception as e:
@@ -209,12 +243,14 @@ class BlazingFastBlazingFastTaskIdentificationEngine:
             intent = self._classify_intent_simple(query_text)
             keywords = self._extract_keywords_simple(query_text)
 
-            analyzed_queries.append({
-                **query_data,
-                "intent": intent,
-                "keywords": keywords,
-                "processed_text": query_text.lower()
-            })
+            analyzed_queries.append(
+                {
+                    **query_data,
+                    "intent": intent,
+                    "keywords": keywords,
+                    "processed_text": query_text.lower(),
+                }
+            )
 
         return analyzed_queries
 
@@ -223,19 +259,31 @@ class BlazingFastBlazingFastTaskIdentificationEngine:
         query_lower = query.lower()
 
         # Legal intents
-        if any(word in query_lower for word in ['law', 'constitution', 'act', 'bill', 'court', 'judge']):
+        if any(
+            word in query_lower
+            for word in ["law", "constitution", "act", "bill", "court", "judge"]
+        ):
             return "legal_analysis"
 
         # News/Current affairs
-        if any(word in query_lower for word in ['news', 'current', 'recent', 'today', 'latest']):
+        if any(
+            word in query_lower
+            for word in ["news", "current", "recent", "today", "latest"]
+        ):
             return "news_inquiry"
 
         # Parliament
-        if any(word in query_lower for word in ['parliament', 'mp', 'debate', 'budget', 'vote']):
+        if any(
+            word in query_lower
+            for word in ["parliament", "mp", "debate", "budget", "vote"]
+        ):
             return "parliamentary_inquiry"
 
         # Sentiment/Public opinion
-        if any(word in query_lower for word in ['sentiment', 'public opinion', 'people think', 'popular']):
+        if any(
+            word in query_lower
+            for word in ["sentiment", "public opinion", "people think", "popular"]
+        ):
             return "sentiment_analysis"
 
         # General information
@@ -244,15 +292,41 @@ class BlazingFastBlazingFastTaskIdentificationEngine:
     def _extract_keywords_simple(self, query: str) -> List[str]:
         """Simple keyword extraction"""
         # Remove common stop words and extract meaningful terms
-        stop_words = {'what', 'is', 'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'how', 'why', 'when', 'where', 'who'}
+        stop_words = {
+            "what",
+            "is",
+            "the",
+            "a",
+            "an",
+            "and",
+            "or",
+            "but",
+            "in",
+            "on",
+            "at",
+            "to",
+            "for",
+            "of",
+            "with",
+            "by",
+            "how",
+            "why",
+            "when",
+            "where",
+            "who",
+        }
         words = query.lower().split()
         keywords = [word for word in words if word not in stop_words and len(word) > 2]
         return keywords[:10]  # Limit to top 10 keywords
 
-    def cluster_queries(self, analyzed_queries: List[Dict], n_clusters: int = None) -> Dict[str, List[Dict]]:
+    def cluster_queries(
+        self, analyzed_queries: List[Dict], n_clusters: int = None
+    ) -> Dict[str, List[Dict]]:
         """Cluster similar queries using TF-IDF and K-means"""
         if len(analyzed_queries) < self.min_cluster_size:
-            logger.warning(f"Not enough queries for clustering: {len(analyzed_queries)} < {self.min_cluster_size}")
+            logger.warning(
+                f"Not enough queries for clustering: {len(analyzed_queries)} < {self.min_cluster_size}"
+            )
             return {}
 
         # Prepare text data for clustering
@@ -279,10 +353,14 @@ class BlazingFastBlazingFastTaskIdentificationEngine:
         for i, cluster_id in enumerate(clusters):
             clustered_queries[str(cluster_id)].append(analyzed_queries[i])
 
-        logger.info(f"Clustered {len(analyzed_queries)} queries into {n_clusters} groups")
+        logger.info(
+            f"Clustered {len(analyzed_queries)} queries into {n_clusters} groups"
+        )
         return dict(clustered_queries)
 
-    def create_task_clusters(self, clustered_queries: Dict[str, List[Dict]]) -> List[TaskCluster]:
+    def create_task_clusters(
+        self, clustered_queries: Dict[str, List[Dict]]
+    ) -> List[TaskCluster]:
         """Create TaskCluster objects from clustered queries"""
         task_clusters = []
 
@@ -317,7 +395,7 @@ class BlazingFastBlazingFastTaskIdentificationEngine:
                 description=description,
                 keywords=top_keywords,
                 sample_queries=sample_queries,
-                document_ids=document_ids
+                document_ids=document_ids,
             )
 
             task_clusters.append(cluster)
@@ -331,7 +409,7 @@ class BlazingFastBlazingFastTaskIdentificationEngine:
             "news_inquiry": "News & Current Affairs",
             "parliamentary_inquiry": "Parliamentary Affairs",
             "sentiment_analysis": "Public Sentiment",
-            "general_inquiry": "General Information"
+            "general_inquiry": "General Information",
         }
 
         base_name = intent_names.get(intent, "General Inquiry")
@@ -347,7 +425,7 @@ class BlazingFastBlazingFastTaskIdentificationEngine:
             "news_inquiry": "Questions about current events, recent news, and ongoing developments",
             "parliamentary_inquiry": "Inquiries about parliamentary proceedings, bills, debates, and government actions",
             "sentiment_analysis": "Analysis of public opinion and sentiment on various topics",
-            "general_inquiry": "General questions and information requests"
+            "general_inquiry": "General questions and information requests",
         }
 
         return intent_descriptions.get(intent, "Various types of information requests")
@@ -384,7 +462,12 @@ class BlazingFastBlazingFastTaskIdentificationEngine:
         for cluster in self.task_clusters.values():
             # Calculate similarity score based on keyword overlap and intent
             keyword_overlap = len(set(query_keywords) & set(cluster.keywords))
-            intent_match = 1 if self._classify_intent_simple(query) == cluster.name.split(' - ')[0].lower().replace(' ', '_') else 0
+            intent_match = (
+                1
+                if self._classify_intent_simple(query)
+                == cluster.name.split(" - ")[0].lower().replace(" ", "_")
+                else 0
+            )
 
             score = keyword_overlap * 0.7 + intent_match * 0.3
 
@@ -421,19 +504,27 @@ class BlazingFastBlazingFastTaskIdentificationEngine:
         # Update existing clusters
         self.update_task_clusters(new_task_clusters)
 
-        logger.info(f"Task identification completed. Created/updated {len(new_task_clusters)} clusters")
+        logger.info(
+            f"Task identification completed. Created/updated {len(new_task_clusters)} clusters"
+        )
 
 
 class AdaptiveRetrievalEngine:
     """Engine for adaptive retrieval using task groups"""
 
-    def __init__(self, vector_store: VectorStore, task_engine: BlazingFastTaskIdentificationEngine):
+    def __init__(
+        self,
+        vector_store: VectorStore,
+        task_engine: BlazingFastTaskIdentificationEngine,
+    ):
         self.vector_store = vector_store
         self.task_engine = task_engine
         self.semantic_cache = {}
         self.cache_max_size = 500
 
-    def retrieve_adaptive(self, query: str, top_k: int = 5, task_group: Optional[str] = None) -> List[Dict]:
+    def retrieve_adaptive(
+        self, query: str, top_k: int = 5, task_group: Optional[str] = None
+    ) -> List[Dict]:
         """Perform adaptive retrieval using task groups and semantic caching"""
 
         # Check semantic cache first
@@ -455,12 +546,12 @@ class AdaptiveRetrievalEngine:
             if cluster.document_ids:
                 # Query specific documents in the cluster
                 cluster_docs = self.vector_store.query_by_ids(
-                    document_ids=cluster.document_ids,
-                    query_text=query,
-                    n_results=top_k
+                    document_ids=cluster.document_ids, query_text=query, n_results=top_k
                 )
                 retrieved_docs.extend(cluster_docs)
-                logger.info(f"Retrieved {len(cluster_docs)} documents from task group {task_group}")
+                logger.info(
+                    f"Retrieved {len(cluster_docs)} documents from task group {task_group}"
+                )
 
             # Also do broader search with task group keywords as context
             keyword_filter = " ".join(cluster.keywords[:5])
@@ -469,17 +560,16 @@ class AdaptiveRetrievalEngine:
             broader_docs = self.vector_store.query(
                 query_text=enhanced_query,
                 n_results=top_k // 2,
-                filter={"category": cluster.name.split(' - ')[0].lower()}
+                filter={"category": cluster.name.split(" - ")[0].lower()},
             )
             retrieved_docs.extend(broader_docs)
-            logger.info(f"Retrieved {len(broader_docs)} additional documents with enhanced query")
+            logger.info(
+                f"Retrieved {len(broader_docs)} additional documents with enhanced query"
+            )
 
         else:
             # Fallback to standard retrieval
-            retrieved_docs = self.vector_store.query(
-                query_text=query,
-                n_results=top_k
-            )
+            retrieved_docs = self.vector_store.query(query_text=query, n_results=top_k)
             logger.info("Used standard retrieval (no task group match)")
 
         # Remove duplicates and sort by relevance
@@ -527,15 +617,23 @@ class AdaptiveRetrievalEngine:
 class ContinuousLearningEngine:
     """Engine for continuous learning and model adaptation"""
 
-    def __init__(self, task_engine: BlazingFastTaskIdentificationEngine, adaptation_interval_days: int = 7):
+    def __init__(
+        self,
+        task_engine: BlazingFastTaskIdentificationEngine,
+        adaptation_interval_days: int = 7,
+    ):
         self.task_engine = task_engine
         self.adaptation_interval_days = adaptation_interval_days
-        self.last_adaptation = datetime.now() - timedelta(days=adaptation_interval_days + 1)
+        self.last_adaptation = datetime.now() - timedelta(
+            days=adaptation_interval_days + 1
+        )
         self.performance_metrics = {}
 
     def should_adapt(self) -> bool:
         """Check if it's time for model adaptation"""
-        return (datetime.now() - self.last_adaptation).days >= self.adaptation_interval_days
+        return (
+            datetime.now() - self.last_adaptation
+        ).days >= self.adaptation_interval_days
 
     def collect_feedback_data(self) -> Dict:
         """Collect feedback data from user interactions"""
@@ -546,7 +644,7 @@ class ContinuousLearningEngine:
             "failed_queries": [],
             "user_ratings": [],
             "response_times": [],
-            "task_group_performance": {}
+            "task_group_performance": {},
         }
 
         # In practice, this would read from a feedback database
@@ -575,19 +673,34 @@ class ContinuousLearningEngine:
         # Calculate metrics for each task group
         for cluster_id, cluster in self.task_engine.task_clusters.items():
             # Mock performance calculation
-            successful_queries = len([q for q in feedback_data["successful_queries"]
-                                    if self.task_engine.identify_task_group(q) == cluster_id])
+            successful_queries = len(
+                [
+                    q
+                    for q in feedback_data["successful_queries"]
+                    if self.task_engine.identify_task_group(q) == cluster_id
+                ]
+            )
             total_queries = cluster.query_count
 
             if total_queries > 0:
                 success_rate = successful_queries / total_queries
-                avg_response_time = np.mean([rt for rt in feedback_data["response_times"]
-                                           if self.task_engine.identify_task_group(feedback_data["successful_queries"][i]) == cluster_id] or [1.0])
+                avg_response_time = np.mean(
+                    [
+                        rt
+                        for i, rt in enumerate(feedback_data["response_times"])
+                        if i < len(feedback_data["successful_queries"])
+                        and self.task_engine.identify_task_group(
+                            feedback_data["successful_queries"][i]
+                        )
+                        == cluster_id
+                    ]
+                    or [1.0]
+                )
 
                 task_performance[cluster_id] = {
                     "success_rate": success_rate,
                     "avg_response_time": avg_response_time,
-                    "query_volume": total_queries
+                    "query_volume": total_queries,
                 }
 
         return dict(task_performance)
@@ -600,7 +713,9 @@ class ContinuousLearningEngine:
 
                 # If performance is poor, mark for review
                 if performance["success_rate"] < 0.7:
-                    logger.warning(f"Task cluster {cluster_id} has low success rate: {performance['success_rate']}")
+                    logger.warning(
+                        f"Task cluster {cluster_id} has low success rate: {performance['success_rate']}"
+                    )
 
                 # Update cluster metadata
                 cluster.updated_at = datetime.now()
@@ -613,10 +728,14 @@ class ContinuousLearningEngine:
         for cluster_id, performance in task_performance.items():
             if performance["success_rate"] > 0.8:
                 # High performing clusters - can reduce retrieval breadth
-                logger.info(f"Optimizing retrieval for high-performing cluster {cluster_id}")
+                logger.info(
+                    f"Optimizing retrieval for high-performing cluster {cluster_id}"
+                )
             elif performance["success_rate"] < 0.6:
                 # Low performing clusters - increase retrieval breadth
-                logger.info(f"Expanding retrieval for low-performing cluster {cluster_id}")
+                logger.info(
+                    f"Expanding retrieval for low-performing cluster {cluster_id}"
+                )
 
     def run_continuous_learning(self):
         """Run the continuous learning cycle"""
@@ -637,13 +756,19 @@ class ContinuousLearningEngine:
 class AdaptiveRAGPipeline:
     """Main adaptive RAG pipeline implementing the proposed algorithm"""
 
-    def __init__(self, vector_store: Optional[VectorStore] = None, config_manager: Optional[Any] = None):
+    def __init__(
+        self,
+        vector_store: Optional[VectorStore] = None,
+        config_manager: Optional[Any] = None,
+    ):
         self.vector_store = vector_store or VectorStore(config_manager=config_manager)
         self.metadata_manager = MetadataManager(self.vector_store)
 
         # Initialize components
         self.task_engine = BlazingFastTaskIdentificationEngine()
-        self.retrieval_engine = AdaptiveRetrievalEngine(self.vector_store, self.task_engine)
+        self.retrieval_engine = AdaptiveRetrievalEngine(
+            self.vector_store, self.task_engine
+        )
         self.learning_engine = ContinuousLearningEngine(self.task_engine)
 
         # Initialize cache
@@ -671,7 +796,7 @@ class AdaptiveRAGPipeline:
                 "sources": [],
                 "query_time": time.time() - start_time,
                 "task_group": None,
-                "retrieved_chunks": 0
+                "retrieved_chunks": 0,
             }
 
         # Generate answer using retrieved documents
@@ -683,7 +808,11 @@ class AdaptiveRAGPipeline:
 
         # Update task group with relevant document IDs
         if task_group:
-            doc_ids = [doc.get("id", doc.get("document_id", "")) for doc in retrieved_docs if doc.get("id") or doc.get("document_id")]
+            doc_ids = [
+                doc.get("id", doc.get("document_id", ""))
+                for doc in retrieved_docs
+                if doc.get("id") or doc.get("document_id")
+            ]
             if doc_ids:
                 self.retrieval_engine.update_task_group_documents(task_group, doc_ids)
 
@@ -698,7 +827,7 @@ class AdaptiveRAGPipeline:
             "query_time": query_time,
             "task_group": task_group,
             "retrieved_chunks": len(retrieved_docs),
-            "model_used": "adaptive-rag"
+            "model_used": "adaptive-rag",
         }
 
         return result
@@ -735,7 +864,7 @@ class AdaptiveRAGPipeline:
                 "title": doc.get("title", doc.get("source", "Unknown")),
                 "content": doc.get("text", doc.get("content", ""))[:200] + "...",
                 "score": doc.get("score", 0.0),
-                "metadata": doc.get("metadata", {})
+                "metadata": doc.get("metadata", {}),
             }
             sources.append(source)
         return sources
@@ -744,7 +873,9 @@ class AdaptiveRAGPipeline:
         """Get information about current task groups"""
         return {
             "total_groups": len(self.task_engine.task_clusters),
-            "groups": [cluster.to_dict() for cluster in self.task_engine.task_clusters.values()]
+            "groups": [
+                cluster.to_dict() for cluster in self.task_engine.task_clusters.values()
+            ],
         }
 
     def force_task_identification(self, days_back: int = 7):

@@ -8,4 +8,3 @@ from .quantized_attention import QuantizedMultiHeadAttention
 from .attention_streaming import StreamingAttention
 
 __all__ = ["QuantizedMultiHeadAttention", "StreamingAttention"]
-

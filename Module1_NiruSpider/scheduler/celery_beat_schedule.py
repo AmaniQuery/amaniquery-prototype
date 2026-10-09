@@ -1,12 +1,12 @@
 """
 Celery Beat Schedule Configuration
 
-This defines the automatic scheduling for all crawlers and data pipelines 
+This defines the automatic scheduling for all crawlers and data pipelines
 to keep the vector store up to date with new legal documents and news.
 
 Schedule Overview:
 - News RSS: Every 4 hours (breaking news)
-- Global Trends: Every 6 hours (international news)  
+- Global Trends: Every 6 hours (international news)
 - Parliament: Every 12 hours (Hansards, Bills)
 - Parliament Videos: Daily at 3 AM
 - Kenya Law: Every 2 days at 2 AM (comprehensive legal database)
@@ -21,12 +21,12 @@ Maintenance:
 - Cleanup old data: Weekly
 - Health Check: Every 30 minutes
 """
+
 from celery.schedules import crontab
 
 # Schedule for periodic crawling and data processing
 beat_schedule = {
     # ============== HIGH FREQUENCY - NEWS ==============
-    
     # Crawl Kenyan news every 4 hours
     # Breaking news needs frequent updates
     "crawl-news-rss-4h": {
@@ -35,7 +35,6 @@ beat_schedule = {
         "args": ("news_rss",),
         "options": {"queue": "crawling"},
     },
-    
     # Crawl global trends every 6 hours
     "crawl-global-trends-6h": {
         "task": "run_crawler",
@@ -43,9 +42,7 @@ beat_schedule = {
         "args": ("global_trends",),
         "options": {"queue": "crawling"},
     },
-    
     # ============== MEDIUM FREQUENCY - PARLIAMENT ==============
-    
     # Crawl Parliament (Hansards, Bills) every 12 hours
     "crawl-parliament-12h": {
         "task": "run_crawler",
@@ -53,9 +50,7 @@ beat_schedule = {
         "args": ("parliament",),
         "options": {"queue": "crawling"},
     },
-    
     # ============== LOW FREQUENCY - LEGAL ==============
-    
     # Crawl Parliament videos daily at 3 AM
     "crawl-parliament-videos-daily": {
         "task": "run_crawler",
@@ -63,7 +58,6 @@ beat_schedule = {
         "args": ("parliament_videos",),
         "options": {"queue": "crawling"},
     },
-    
     # Crawl Kenya Law every 2 days at 2 AM
     # This is a comprehensive crawl of the legal database
     "crawl-kenya-law-48h": {
@@ -72,7 +66,6 @@ beat_schedule = {
         "args": ("kenya_law",),
         "options": {"queue": "crawling"},
     },
-
     # Crawl Constitution sources weekly at 4 AM on Monday
     "crawl-constitution-weekly": {
         "task": "run_crawler",
@@ -80,9 +73,7 @@ beat_schedule = {
         "args": ("constitution",),
         "options": {"queue": "crawling"},
     },
-
     # ============== NEW SPIDERS ==============
-
     # Crawl Kenya Gazette daily at 5 AM
     "crawl-kenya-gazette-daily": {
         "task": "run_crawler",
@@ -90,7 +81,6 @@ beat_schedule = {
         "args": ("kenya_gazette",),
         "options": {"queue": "crawling"},
     },
-
     # Crawl Africa Check Kenya fact-checks daily at 6 AM
     "crawl-fact-check-daily": {
         "task": "run_crawler",
@@ -98,7 +88,6 @@ beat_schedule = {
         "args": ("fact_check",),
         "options": {"queue": "crawling"},
     },
-
     # Crawl The Conversation Africa analysis daily at 7 AM
     "crawl-africa-analysis-daily": {
         "task": "run_crawler",
@@ -106,9 +95,7 @@ beat_schedule = {
         "args": ("africa_analysis",),
         "options": {"queue": "crawling"},
     },
-    
     # ============== DATA PROCESSING PIPELINE ==============
-    
     # Process raw data every 4 hours (after news crawls complete)
     # This runs: text extraction -> cleaning -> chunking -> enrichment
     "process-raw-data-4h": {
@@ -117,32 +104,26 @@ beat_schedule = {
         "kwargs": {"incremental": True},
         "options": {"queue": "crawling"},
     },
-    
     # Generate/verify embeddings every 4 hours
     "generate-embeddings-4h": {
         "task": "generate_embeddings",
         "schedule": crontab(minute=45, hour="*/4"),  # 45 min after news crawl
         "options": {"queue": "crawling"},
     },
-    
     # ============== VECTOR STORE UPDATES ==============
-    
     # Populate vector stores every 4 hours (after processing completes)
     "populate-vector-stores-4h": {
         "task": "populate_vector_stores",
         "schedule": crontab(minute=55, hour="*/4"),  # 55 min after news crawl
         "options": {"queue": "crawling"},
     },
-    
     # Validate vector store integrity daily at midnight
     "validate-vector-store-daily": {
         "task": "validate_vector_store",
         "schedule": crontab(minute=0, hour=0),  # Midnight
         "options": {"queue": "crawling"},
     },
-    
     # ============== FULL PIPELINE RUNS ==============
-    
     # Run incremental update every 6 hours
     # This is a coordinated crawl+process+embed+store operation for news
     "incremental-update-6h": {
@@ -150,14 +131,12 @@ beat_schedule = {
         "schedule": crontab(minute=0, hour="1,7,13,19"),  # 1 AM, 7 AM, 1 PM, 7 PM
         "options": {"queue": "crawling"},
     },
-    
     # Run legal sources pipeline weekly on Wednesday at 1 AM
     "legal-pipeline-weekly": {
         "task": "run_legal_sources_pipeline",
         "schedule": crontab(minute=0, hour=1, day_of_week="3"),  # Wednesday 1 AM
         "options": {"queue": "crawling"},
     },
-    
     # Full pipeline refresh weekly on Sunday at 1 AM
     # This rebuilds everything from scratch
     "full-pipeline-weekly": {
@@ -166,9 +145,7 @@ beat_schedule = {
         "kwargs": {"skip_crawling": False},
         "options": {"queue": "crawling"},
     },
-    
     # ============== MAINTENANCE ==============
-    
     # Clean up old raw data files weekly on Saturday at 4 AM
     "cleanup-old-data-weekly": {
         "task": "cleanup_old_data",
@@ -176,7 +153,6 @@ beat_schedule = {
         "kwargs": {"days_to_keep": 90},
         "options": {"queue": "celery"},
     },
-    
     # Rebuild vector index monthly on the 1st at 2 AM
     "rebuild-vector-index-monthly": {
         "task": "rebuild_vector_index",
@@ -184,7 +160,6 @@ beat_schedule = {
         "kwargs": {"backend": "qdrant"},
         "options": {"queue": "crawling"},
     },
-    
     # Health check every 30 minutes
     "scheduler-health-check": {
         "task": "scheduler_health_check",
@@ -294,4 +269,3 @@ beat_schedule_production = {
         "schedule": crontab(minute="*/15"),
     },
 }
-

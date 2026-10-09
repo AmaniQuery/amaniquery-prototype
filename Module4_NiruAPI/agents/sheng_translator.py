@@ -31,6 +31,7 @@ from enum import Enum
 
 class TranslationDirection(str, Enum):
     """Direction of translation"""
+
     TO_FORMAL = "to_formal"
     TO_SHENG = "to_sheng"
 
@@ -49,7 +50,6 @@ SHENG_FORMAL_DICTIONARY = {
     "gavaa": "Government",
     "state house": "Office of the President",
     "statehouse": "Office of the President",
-    
     # Political Figures
     "mhesh": "Member of Parliament",
     "mheshimiwa": "Honourable Member of Parliament",
@@ -63,7 +63,6 @@ SHENG_FORMAL_DICTIONARY = {
     "wabunge": "Members of Parliament",
     "viongozi": "leaders",
     "mbunge": "Member of Parliament",
-    
     # Money & Finance
     "doh": "money",
     "doe": "money",
@@ -75,7 +74,6 @@ SHENG_FORMAL_DICTIONARY = {
     "budget": "budget allocation",
     "taxes": "taxation",
     "cess": "county levy",
-    
     # Laws & Bills
     "sheria": "law",
     "bill": "proposed legislation",
@@ -83,7 +81,6 @@ SHENG_FORMAL_DICTIONARY = {
     "katiba": "Constitution of Kenya",
     "finance bill": "Finance Bill",
     "amendment": "constitutional amendment",
-    
     # Locations
     "tao": "town",
     "town": "Central Business District",
@@ -94,7 +91,6 @@ SHENG_FORMAL_DICTIONARY = {
     "slums": "informal settlements",
     "shags": "rural areas",
     "ocha": "rural home areas",
-    
     # Transport
     "mat": "public service vehicle",
     "matatu": "public service vehicle",
@@ -105,7 +101,6 @@ SHENG_FORMAL_DICTIONARY = {
     "barabara": "road",
     "jam": "traffic congestion",
     "traffic": "traffic management",
-    
     # Services & Infrastructure
     "maji": "water services",
     "stima": "electricity supply",
@@ -116,7 +111,6 @@ SHENG_FORMAL_DICTIONARY = {
     "kanju": "Nairobi City County enforcement",
     "askari": "security officers",
     "polisi": "Kenya Police Service",
-    
     # Healthcare & Education
     "hospital": "healthcare facility",
     "hospitali": "public hospital",
@@ -125,7 +119,6 @@ SHENG_FORMAL_DICTIONARY = {
     "college": "tertiary institution",
     "daktari": "medical practitioner",
     "mwalimu": "teacher",
-    
     # Social Issues
     "uchizi": "corruption",
     "rushwa": "bribery",
@@ -139,7 +132,6 @@ SHENG_FORMAL_DICTIONARY = {
     "wanjiku": "ordinary Kenyan citizen",
     "mwananchi": "citizen",
     "wananchi": "citizens",
-    
     # Food & Agriculture
     "chakula": "food security",
     "unga": "maize flour",
@@ -147,21 +139,18 @@ SHENG_FORMAL_DICTIONARY = {
     "kilimo": "agriculture",
     "wakulima": "farmers",
     "mama mboga": "vegetable vendors",
-    
     # Housing
     "nyumba": "housing",
     "plot": "residential plot",
     "title deed": "land title",
     "rent": "rental charges",
     "kodi": "rent payment",
-    
     # Employment
     "kazi": "employment",
     "job": "employment opportunity",
     "hustle": "income-generating activity",
     "biashara": "business enterprise",
     "duka": "retail shop",
-    
     # Time & Events
     "saa": "hour",
     "leo": "today",
@@ -169,7 +158,6 @@ SHENG_FORMAL_DICTIONARY = {
     "juzi": "recently",
     "siku hizi": "currently",
     "session": "parliamentary session",
-    
     # Actions & Processes
     "kupiga kura": "voting",
     "kura": "vote",
@@ -179,7 +167,6 @@ SHENG_FORMAL_DICTIONARY = {
     "approve": "legislative approval",
     "reject": "legislative rejection",
     "pass": "enact legislation",
-    
     # Common Verbs
     "wameamua": "has resolved",
     "wamesema": "has stated",
@@ -187,7 +174,6 @@ SHENG_FORMAL_DICTIONARY = {
     "wanaongeza": "is increasing",
     "wanapunguza": "is reducing",
     "wamebadilisha": "has changed",
-    
     # Questions & References
     "nini": "what",
     "aje": "how",
@@ -198,7 +184,6 @@ SHENG_FORMAL_DICTIONARY = {
     "je": "question marker",
     "ama": "or",
     "au": "or",
-    
     # Emphasis & Slang
     "si": "isn't it",
     "kwani": "why",
@@ -209,7 +194,7 @@ SHENG_FORMAL_DICTIONARY = {
     "ya": "of",
     "kuhusu": "about/regarding",
     "hii": "this",
-    "hiyo": "that"
+    "hiyo": "that",
 }
 
 # Create reverse mapping (formal → sheng) for bidirectional translation
@@ -222,18 +207,18 @@ FORMAL_SHENG_DICTIONARY = {v.lower(): k for k, v in SHENG_FORMAL_DICTIONARY.item
 
 SHENG_INDICATORS = [
     # Common Sheng words
-    r'\b(kanjo|bunge|mashamba|mhesh|doh|doe|ganji|mat|boda|nduthi)\b',
+    r"\b(kanjo|bunge|mashamba|mhesh|doh|doe|ganji|mat|boda|nduthi)\b",
     # Swahili question words
-    r'\b(nini|aje|lini|wapi|nani|ngapi|je)\b',
+    r"\b(nini|aje|lini|wapi|nani|ngapi|je)\b",
     # Common verbs
-    r'\b(wame|wana|ame|ana)(amua|sema|panga|ongeza|punguza|badilisha)\b',
+    r"\b(wame|wana|ame|ana)(amua|sema|panga|ongeza|punguza|badilisha)\b",
     # Emphasis markers
-    r'\b(bana|si|kwani|alafu)\b',
+    r"\b(bana|si|kwani|alafu)\b",
     # Mixed Swahili-English
-    r'(kwa |ya |kuhusu |hii |hiyo )',
+    r"(kwa |ya |kuhusu |hii |hiyo )",
 ]
 
-SHENG_PATTERN = re.compile('|'.join(SHENG_INDICATORS), re.IGNORECASE)
+SHENG_PATTERN = re.compile("|".join(SHENG_INDICATORS), re.IGNORECASE)
 
 
 # ============================================================================
@@ -303,39 +288,41 @@ Your task is to take a formal institutional answer and rephrase it in a natural,
 # CORE TRANSLATION FUNCTIONS
 # ============================================================================
 
+
 def detect_sheng(text: str) -> Tuple[bool, float, List[str]]:
     """
     Detects if text contains Kenyan Sheng or heavy slang.
-    
+
     Args:
         text: The input text to analyze
-        
+
     Returns:
         Tuple of (is_sheng, confidence, detected_terms)
         - is_sheng: True if Sheng detected
         - confidence: Score 0.0-1.0 based on term frequency
         - detected_terms: List of Sheng words found
-        
+
     Example:
         >>> detect_sheng("Kanjo wameamua nini kuhusu parking doh?")
         (True, 0.85, ["kanjo", "wameamua", "nini", "kuhusu", "doh"])
     """
     text_lower = text.lower()
     detected_terms = []
-    
+
     # Find all Sheng terms
     for sheng_term in SHENG_FORMAL_DICTIONARY.keys():
-        if re.search(r'\b' + re.escape(sheng_term) + r'\b', text_lower):
+        if re.search(r"\b" + re.escape(sheng_term) + r"\b", text_lower):
             detected_terms.append(sheng_term)
-    
+
     # Check regex patterns
     pattern_matches = SHENG_PATTERN.findall(text_lower)
-    detected_terms.extend([match[0] if isinstance(match, tuple) else match 
-                          for match in pattern_matches])
-    
+    detected_terms.extend(
+        [match[0] if isinstance(match, tuple) else match for match in pattern_matches]
+    )
+
     # Remove duplicates
     detected_terms = list(set(detected_terms))
-    
+
     # Calculate confidence based on term density
     word_count = len(text.split())
     if word_count == 0:
@@ -343,32 +330,32 @@ def detect_sheng(text: str) -> Tuple[bool, float, List[str]]:
     else:
         # Confidence = (sheng_terms / total_words) normalized to 0-1
         confidence = min(len(detected_terms) / word_count * 2, 1.0)
-    
+
     is_sheng = confidence > 0.2  # Threshold: >20% Sheng terms
-    
+
     return is_sheng, confidence, detected_terms
 
 
 def get_translation_dictionary_str() -> str:
     """Returns formatted dictionary string for prompts"""
-    dict_items = [f'"{sheng}" → "{formal}"' 
-                  for sheng, formal in sorted(SHENG_FORMAL_DICTIONARY.items())]
+    dict_items = [
+        f'"{sheng}" → "{formal}"'
+        for sheng, formal in sorted(SHENG_FORMAL_DICTIONARY.items())
+    ]
     return "\n".join(dict_items)
 
 
 def translate_to_formal(
-    user_query: str,
-    llm_function: callable = None,
-    use_dictionary_only: bool = False
+    user_query: str, llm_function: callable = None, use_dictionary_only: bool = False
 ) -> Dict[str, any]:
     """
     Translates Sheng query to formal search query.
-    
+
     Args:
         user_query: The user's original query in Sheng/slang
         llm_function: Callable that takes prompt and returns text response
         use_dictionary_only: If True, only does dictionary replacement (no LLM)
-        
+
     Returns:
         {
             "original_query": str,
@@ -378,7 +365,7 @@ def translate_to_formal(
             "detected_terms": List[str],
             "method": "llm" | "dictionary" | "passthrough"
         }
-        
+
     Example:
         >>> translate_to_formal("Kanjo wameamua nini kuhusu parking doh?", my_llm)
         {
@@ -392,7 +379,7 @@ def translate_to_formal(
     """
     # Detect Sheng
     is_sheng, confidence, detected_terms = detect_sheng(user_query)
-    
+
     # If no Sheng detected, return original query
     if not is_sheng:
         return {
@@ -401,47 +388,46 @@ def translate_to_formal(
             "detected_sheng": False,
             "confidence": confidence,
             "detected_terms": [],
-            "method": "passthrough"
+            "method": "passthrough",
         }
-    
+
     # Method 1: Dictionary-only replacement
     if use_dictionary_only or llm_function is None:
         formal_query = user_query
         for sheng, formal in SHENG_FORMAL_DICTIONARY.items():
             # Use word boundaries for accurate replacement
-            pattern = r'\b' + re.escape(sheng) + r'\b'
+            pattern = r"\b" + re.escape(sheng) + r"\b"
             formal_query = re.sub(pattern, formal, formal_query, flags=re.IGNORECASE)
-        
+
         return {
             "original_query": user_query,
             "formal_query": formal_query,
             "detected_sheng": True,
             "confidence": confidence,
             "detected_terms": detected_terms,
-            "method": "dictionary"
+            "method": "dictionary",
         }
-    
+
     # Method 2: LLM-based translation
     try:
         prompt = SHENG_TO_FORMAL_PROMPT.format(
-            dictionary=get_translation_dictionary_str(),
-            user_query=user_query
+            dictionary=get_translation_dictionary_str(), user_query=user_query
         )
-        
+
         formal_query = llm_function(prompt).strip()
-        
+
         # Remove any markdown formatting
         formal_query = formal_query.replace("**", "").replace("```", "")
-        
+
         return {
             "original_query": user_query,
             "formal_query": formal_query,
             "detected_sheng": True,
             "confidence": confidence,
             "detected_terms": detected_terms,
-            "method": "llm"
+            "method": "llm",
         }
-    
+
     except Exception as e:
         # Fallback to dictionary method
         return translate_to_formal(user_query, use_dictionary_only=True)
@@ -451,17 +437,17 @@ def translate_to_sheng(
     user_query: str,
     formal_answer: str,
     llm_function: callable,
-    detected_style: str = "mixed Swahili-English with Sheng slang"
+    detected_style: str = "mixed Swahili-English with Sheng slang",
 ) -> Dict[str, any]:
     """
     Translates formal institutional answer back to Sheng-infused response.
-    
+
     Args:
         user_query: The user's original query (for style matching)
         formal_answer: The formal answer from RAG system
         llm_function: Callable that takes prompt and returns text response
         detected_style: Description of user's language style
-        
+
     Returns:
         {
             "original_query": str,
@@ -469,7 +455,7 @@ def translate_to_sheng(
             "sheng_response": str,
             "style": str
         }
-        
+
     Example:
         >>> translate_to_sheng(
         ...     "Kanjo wameamua nini kuhusu parking doh?",
@@ -484,18 +470,18 @@ def translate_to_sheng(
         prompt = FORMAL_TO_SHENG_PROMPT.format(
             user_query=user_query,
             detected_style=detected_style,
-            formal_answer=formal_answer
+            formal_answer=formal_answer,
         )
-        
+
         sheng_response = llm_function(prompt).strip()
-        
+
         return {
             "original_query": user_query,
             "formal_answer": formal_answer,
             "sheng_response": sheng_response,
-            "style": detected_style
+            "style": detected_style,
         }
-    
+
     except Exception as e:
         # Fallback: return formal answer
         return {
@@ -503,7 +489,7 @@ def translate_to_sheng(
             "formal_answer": formal_answer,
             "sheng_response": formal_answer,
             "style": detected_style,
-            "error": str(e)
+            "error": str(e),
         }
 
 
@@ -511,19 +497,18 @@ def translate_to_sheng(
 # INTEGRATION HELPERS
 # ============================================================================
 
+
 def full_translation_pipeline(
-    user_query: str,
-    rag_function: callable,
-    llm_function: callable
+    user_query: str, rag_function: callable, llm_function: callable
 ) -> Dict[str, any]:
     """
     Complete pipeline: Sheng query → Formal search → RAG → Sheng response
-    
+
     Args:
         user_query: User's original query
         rag_function: Function that takes formal query and returns formal answer
         llm_function: LLM function for translation
-        
+
     Returns:
         {
             "user_query": str,
@@ -533,11 +518,11 @@ def full_translation_pipeline(
             "detected_sheng": bool,
             "pipeline_steps": List[str]
         }
-        
+
     Example:
         >>> def my_rag(query):
         ...     return "Nairobi City County increased parking fees to KES 300."
-        >>> 
+        >>>
         >>> result = full_translation_pipeline(
         ...     "Kanjo wameamua nini kuhusu parking doh?",
         ...     my_rag,
@@ -547,30 +532,26 @@ def full_translation_pipeline(
         "Kanjo wameongeza parking fees to KES 300..."
     """
     pipeline_steps = []
-    
+
     # Step 1: Translate to formal
     translation = translate_to_formal(user_query, llm_function)
     pipeline_steps.append(f"Translated Sheng → Formal: {translation['method']}")
-    
+
     formal_query = translation["formal_query"]
-    
+
     # Step 2: RAG retrieval
     formal_answer = rag_function(formal_query)
     pipeline_steps.append("Retrieved formal answer from RAG")
-    
+
     # Step 3: Translate back to Sheng (only if original was Sheng)
     if translation["detected_sheng"]:
-        sheng_response = translate_to_sheng(
-            user_query,
-            formal_answer,
-            llm_function
-        )
+        sheng_response = translate_to_sheng(user_query, formal_answer, llm_function)
         final_response = sheng_response["sheng_response"]
         pipeline_steps.append("Re-injected Sheng style into response")
     else:
         final_response = formal_answer
         pipeline_steps.append("No Sheng re-injection (formal query)")
-    
+
     return {
         "user_query": user_query,
         "formal_query": formal_query,
@@ -578,7 +559,7 @@ def full_translation_pipeline(
         "final_response": final_response,
         "detected_sheng": translation["detected_sheng"],
         "detected_terms": translation.get("detected_terms", []),
-        "pipeline_steps": pipeline_steps
+        "pipeline_steps": pipeline_steps,
     }
 
 
@@ -586,27 +567,55 @@ def full_translation_pipeline(
 # UTILITY FUNCTIONS
 # ============================================================================
 
+
 def get_dictionary_stats() -> Dict[str, any]:
     """Returns statistics about the Sheng dictionary"""
     return {
         "total_terms": len(SHENG_FORMAL_DICTIONARY),
         "categories": {
-            "government": len([k for k in SHENG_FORMAL_DICTIONARY if any(x in SHENG_FORMAL_DICTIONARY[k].lower() 
-                              for x in ["government", "parliament", "county", "assembly"])]),
-            "money": len([k for k in SHENG_FORMAL_DICTIONARY if "money" in SHENG_FORMAL_DICTIONARY[k].lower() 
-                         or k in ["doh", "doe", "ganji", "mullah", "mbeca"]]),
-            "transport": len([k for k in SHENG_FORMAL_DICTIONARY if any(x in k 
-                             for x in ["mat", "boda", "nduthi", "gari"])]),
-            "people": len([k for k in SHENG_FORMAL_DICTIONARY if any(x in SHENG_FORMAL_DICTIONARY[k].lower() 
-                          for x in ["member", "governor", "president", "senator"])])
+            "government": len(
+                [
+                    k
+                    for k in SHENG_FORMAL_DICTIONARY
+                    if any(
+                        x in SHENG_FORMAL_DICTIONARY[k].lower()
+                        for x in ["government", "parliament", "county", "assembly"]
+                    )
+                ]
+            ),
+            "money": len(
+                [
+                    k
+                    for k in SHENG_FORMAL_DICTIONARY
+                    if "money" in SHENG_FORMAL_DICTIONARY[k].lower()
+                    or k in ["doh", "doe", "ganji", "mullah", "mbeca"]
+                ]
+            ),
+            "transport": len(
+                [
+                    k
+                    for k in SHENG_FORMAL_DICTIONARY
+                    if any(x in k for x in ["mat", "boda", "nduthi", "gari"])
+                ]
+            ),
+            "people": len(
+                [
+                    k
+                    for k in SHENG_FORMAL_DICTIONARY
+                    if any(
+                        x in SHENG_FORMAL_DICTIONARY[k].lower()
+                        for x in ["member", "governor", "president", "senator"]
+                    )
+                ]
+            ),
         },
-        "sample_terms": list(SHENG_FORMAL_DICTIONARY.items())[:10]
+        "sample_terms": list(SHENG_FORMAL_DICTIONARY.items())[:10],
     }
 
 
 def export_dictionary_json(filepath: str = "sheng_dictionary.json"):
     """Exports the dictionary to JSON file"""
-    with open(filepath, 'w', encoding='utf-8') as f:
+    with open(filepath, "w", encoding="utf-8") as f:
         json.dump(SHENG_FORMAL_DICTIONARY, f, indent=2, ensure_ascii=False)
     return f"Dictionary exported to {filepath}"
 
@@ -616,45 +625,45 @@ def export_dictionary_json(filepath: str = "sheng_dictionary.json"):
 # ============================================================================
 
 if __name__ == "__main__":
-    print("="*80)
+    print("=" * 80)
     print("SHENG TRANSLATOR - DICTIONARY STATS")
-    print("="*80)
+    print("=" * 80)
     stats = get_dictionary_stats()
     print(f"\nTotal terms: {stats['total_terms']}")
     print("\nCategories:")
-    for cat, count in stats['categories'].items():
+    for cat, count in stats["categories"].items():
         print(f"  - {cat}: {count} terms")
-    
-    print("\n" + "="*80)
+
+    print("\n" + "=" * 80)
     print("SHENG DETECTION TESTS")
-    print("="*80)
-    
+    print("=" * 80)
+
     test_queries = [
         "Kanjo wameamua nini kuhusu parking doh?",
         "What did the MP for Starehe say about the Finance Bill?",
         "Bunge wanapanga kuongeza tax ya mat ama?",
         "Hii sheria ya housing levy inasema aje?",
-        "When is the next parliamentary session?"
+        "When is the next parliamentary session?",
     ]
-    
+
     for query in test_queries:
         is_sheng, conf, terms = detect_sheng(query)
-        print(f"\nQuery: \"{query}\"")
+        print(f'\nQuery: "{query}"')
         print(f"  Sheng Detected: {is_sheng}")
         print(f"  Confidence: {conf:.2f}")
         print(f"  Terms: {', '.join(terms) if terms else 'None'}")
-    
-    print("\n" + "="*80)
+
+    print("\n" + "=" * 80)
     print("DICTIONARY-ONLY TRANSLATION TEST")
-    print("="*80)
-    
+    print("=" * 80)
+
     test_query = "Kanjo wameamua nini kuhusu parking doh na mat?"
     result = translate_to_formal(test_query, use_dictionary_only=True)
     print(f"\nOriginal: {result['original_query']}")
     print(f"Formal: {result['formal_query']}")
     print(f"Method: {result['method']}")
     print(f"Detected terms: {', '.join(result['detected_terms'])}")
-    
-    print("\n" + "="*80)
+
+    print("\n" + "=" * 80)
     print("ALL TESTS COMPLETE")
-    print("="*80)
+    print("=" * 80)

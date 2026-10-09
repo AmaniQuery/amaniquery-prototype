@@ -25,7 +25,6 @@ from ..types import (
     SupervisorDecision,
 )
 
-
 # =============================================================================
 # CONSTANTS (Tool descriptions kept here for supervisor context)
 # =============================================================================
@@ -56,15 +55,16 @@ MAX_CONTEXT_TOKENS = 12000
 # TOKEN COUNTING UTILITY
 # =============================================================================
 
+
 def count_tokens(text: str, model: str = "gpt-4") -> int:
     """
     Count tokens in text using tiktoken.
     Falls back to word-based estimation if tiktoken fails.
-    
+
     Args:
         text: Input text to count
         model: Model name for tokenizer selection
-        
+
     Returns:
         Estimated token count
     """
@@ -77,14 +77,16 @@ def count_tokens(text: str, model: str = "gpt-4") -> int:
         return len(text) // 4
 
 
-def check_context_overflow(messages: List[Dict[str, Any]], max_tokens: int = MAX_CONTEXT_TOKENS) -> tuple[int, bool]:
+def check_context_overflow(
+    messages: List[Dict[str, Any]], max_tokens: int = MAX_CONTEXT_TOKENS
+) -> tuple[int, bool]:
     """
     Check if message context exceeds token limit.
-    
+
     Args:
         messages: List of message dictionaries
         max_tokens: Maximum allowed tokens
-        
+
     Returns:
         Tuple of (token_count, is_overflow)
     """
@@ -97,7 +99,7 @@ def check_context_overflow(messages: List[Dict[str, Any]], max_tokens: int = MAX
             for item in content:
                 if isinstance(item, dict):
                     total_text += str(item.get("text", "")) + "\n"
-    
+
     token_count = count_tokens(total_text)
     return token_count, token_count > max_tokens
 
@@ -430,26 +432,25 @@ You are the gatekeeper. Route wisely."""
 # PROMPT CONSTRUCTION FUNCTIONS
 # =============================================================================
 
+
 def build_supervisor_messages(
     user_query: str,
     message_history: List[Dict[str, Any]],
-    user_context: Optional[Dict[str, Any]] = None
+    user_context: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, str]]:
     """
     Build the complete message list for supervisor invocation.
-    
+
     Args:
         user_query: Current user query
         message_history: Previous messages in conversation
         user_context: Optional user metadata (expertise level, preferences)
-        
+
     Returns:
         List of messages for LLM invocation
     """
-    messages = [
-        {"role": "system", "content": SUPERVISOR_SYSTEM_PROMPT}
-    ]
-    
+    messages = [{"role": "system", "content": SUPERVISOR_SYSTEM_PROMPT}]
+
     # Add context about user if available
     if user_context:
         context_str = f"""
@@ -460,20 +461,22 @@ def build_supervisor_messages(
 - Session Queries So Far: {user_context.get('session_query_count', 0)}
 """
         messages[0]["content"] += context_str
-    
+
     # Add relevant message history (last 10 messages max)
     for msg in message_history[-10:]:
         role = msg.get("role", "user")
         content = msg.get("content", "")
         if role in ["user", "assistant"]:
             messages.append({"role": role, "content": content})
-    
+
     # Add current query
-    messages.append({
-        "role": "user",
-        "content": f"Analyze this query and output your decision as JSON:\n\n{user_query}"
-    })
-    
+    messages.append(
+        {
+            "role": "user",
+            "content": f"Analyze this query and output your decision as JSON:\n\n{user_query}",
+        }
+    )
+
     return messages
 
 
@@ -481,14 +484,14 @@ def get_moonshot_config() -> Dict[str, Any]:
     """
     Get Moonshot AI configuration for supervisor calls.
     Forces JSON mode for reliable structured output.
-    
+
     Returns:
         Configuration dictionary for Moonshot API
     """
     return {
         "model": "moonshot-v1-32k",
         "temperature": 0.1,  # Low temperature for deterministic routing
-        "max_tokens": 800,   # Enough for full response
+        "max_tokens": 800,  # Enough for full response
         "response_format": {"type": "json_object"},  # Force JSON mode
         "top_p": 0.95,
         "frequency_penalty": 0.0,
@@ -500,21 +503,22 @@ def get_moonshot_config() -> Dict[str, Any]:
 # VALIDATION AND PARSING
 # =============================================================================
 
+
 def parse_supervisor_response(response_text: str) -> SupervisorDecision:
     """
     Parse and validate supervisor response.
-    
+
     Args:
         response_text: Raw JSON string from LLM
-        
+
     Returns:
         Validated SupervisorDecision
-        
+
     Raises:
         ValueError: If response is invalid
     """
     import json
-    
+
     try:
         # Clean response (remove markdown if present)
         cleaned = response_text.strip()
@@ -522,14 +526,14 @@ def parse_supervisor_response(response_text: str) -> SupervisorDecision:
             # Remove markdown code block
             lines = cleaned.split("\n")
             cleaned = "\n".join(lines[1:-1])
-        
+
         # Parse JSON
         data = json.loads(cleaned)
-        
+
         # Validate with Pydantic
         decision = SupervisorDecision(**data)
         return decision
-        
+
     except json.JSONDecodeError as e:
         raise ValueError(f"Invalid JSON in supervisor response: {e}")
     except Exception as e:
@@ -546,7 +550,7 @@ __all__ = [
     "ToolName",
     # Models
     "ToolCall",
-    "ClarificationRequest", 
+    "ClarificationRequest",
     "SupervisorDecision",
     # Constants
     "TOOL_DESCRIPTIONS",

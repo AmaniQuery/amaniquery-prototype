@@ -1,6 +1,7 @@
 """
 Twitter/X platform plugin
 """
+
 from typing import List, Dict, Optional, Union
 from urllib.parse import quote
 import os
@@ -13,11 +14,11 @@ from ..formatters.twitter_formatter import TwitterFormatter
 
 class TwitterPlatform(BasePlatform):
     """Twitter/X platform handler"""
-    
+
     def __init__(self):
         self.formatter = TwitterFormatter()
         super().__init__()
-    
+
     def get_metadata(self) -> PlatformMetadata:
         """Return Twitter platform metadata"""
         return PlatformMetadata(
@@ -31,7 +32,7 @@ class TwitterPlatform(BasePlatform):
             requires_auth=True,
             features=["threads", "hashtags", "mentions", "links"],
         )
-    
+
     def format_post(
         self,
         answer: str,
@@ -51,7 +52,7 @@ class TwitterPlatform(BasePlatform):
         if style:
             result["style"] = style
         return result
-    
+
     def generate_share_link(
         self,
         content: Union[str, List[str]],
@@ -63,15 +64,15 @@ class TwitterPlatform(BasePlatform):
             text = content[0] if content else ""
         else:
             text = str(content)
-        
+
         encoded_text = quote(text)
-        
+
         if url:
             encoded_url = quote(url)
             return f"https://twitter.com/intent/tweet?text={encoded_text}&url={encoded_url}"
         else:
             return f"https://twitter.com/intent/tweet?text={encoded_text}"
-    
+
     def _post_impl(
         self,
         content: Union[str, List[str]],
@@ -86,20 +87,20 @@ class TwitterPlatform(BasePlatform):
                 text = content[0] if content else ""
             else:
                 text = str(content)
-            
+
             url = "https://api.twitter.com/2/tweets"
             headers = {
                 "Authorization": f"Bearer {access_token}",
                 "Content-Type": "application/json",
             }
             data = {"text": text}
-            
+
             response = requests.post(url, headers=headers, json=data)
             response.raise_for_status()
-            
+
             result = response.json()
             tweet_id = result["data"]["id"]
-            
+
             return {
                 "platform": "twitter",
                 "post_id": tweet_id,
@@ -109,16 +110,16 @@ class TwitterPlatform(BasePlatform):
                 "metadata": {
                     "message_id": message_id,
                     "posted_at": datetime.utcnow().isoformat(),
-                }
+                },
             }
         except requests.exceptions.RequestException as e:
             return {
                 "platform": "twitter",
                 "status": "error",
                 "message": f"Failed to post to Twitter: {str(e)}",
-                "metadata": {"message_id": message_id}
+                "metadata": {"message_id": message_id},
             }
-    
+
     def _get_auth_url_impl(self, redirect_uri: Optional[str] = None) -> Dict:
         """Get Twitter OAuth 2.0 authorization URL with PKCE"""
         client_id = os.getenv("TWITTER_CLIENT_ID")
@@ -126,11 +127,13 @@ class TwitterPlatform(BasePlatform):
             return {
                 "platform": "twitter",
                 "status": "error",
-                "message": "Twitter API credentials not configured"
+                "message": "Twitter API credentials not configured",
             }
 
         if not redirect_uri:
-            redirect_uri = os.getenv("TWITTER_REDIRECT_URI", "http://localhost:8000/share/auth/callback")
+            redirect_uri = os.getenv(
+                "TWITTER_REDIRECT_URI", "http://localhost:8000/share/auth/callback"
+            )
 
         # Generate PKCE code verifier and challenge
         import secrets
@@ -138,9 +141,11 @@ class TwitterPlatform(BasePlatform):
         import base64
 
         code_verifier = secrets.token_urlsafe(32)[:128]  # Max 128 chars
-        code_challenge = base64.urlsafe_b64encode(
-            hashlib.sha256(code_verifier.encode()).digest()
-        ).decode().rstrip('=')
+        code_challenge = (
+            base64.urlsafe_b64encode(hashlib.sha256(code_verifier.encode()).digest())
+            .decode()
+            .rstrip("=")
+        )
 
         # Store code_verifier securely (in production, store in user session)
         # For now, we'll use an environment variable - in production use Redis/session
@@ -164,6 +169,5 @@ class TwitterPlatform(BasePlatform):
             "status": "auth_required",
             "message": "Redirect user to Twitter for authentication",
             "auth_url": auth_url,
-            "code_verifier": code_verifier  # In production, don't expose this
+            "code_verifier": code_verifier,  # In production, don't expose this
         }
-

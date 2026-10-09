@@ -2,6 +2,7 @@
 Africa Analysis Spider - Crawls The Conversation Africa for academic/policy analysis
 Provides expert analysis on Kenya, East Africa, and African development topics
 """
+
 import scrapy
 import feedparser
 from datetime import datetime
@@ -38,7 +39,9 @@ class AfricaAnalysisSpider(scrapy.Spider):
         return spider
 
     def spider_closed(self, spider, reason):
-        self.logger.info(f"Spider closed: {reason} — Success: {self.success_count}, Errors: {self.error_count}")
+        self.logger.info(
+            f"Spider closed: {reason} — Success: {self.success_count}, Errors: {self.error_count}"
+        )
 
     def spider_error(self, failure, response, spider):
         self.error_count += 1
@@ -54,19 +57,50 @@ class AfricaAnalysisSpider(scrapy.Spider):
     ]
 
     kenya_keywords = [
-        "kenya", "kenyan", "nairobi", "ruto", "odinga", "kenyatta",
-        "kenya's", "kenyan government", "kenyan economy", "kenyan politics",
-        "east africa", "eac", "east african",
+        "kenya",
+        "kenyan",
+        "nairobi",
+        "ruto",
+        "odinga",
+        "kenyatta",
+        "kenya's",
+        "kenyan government",
+        "kenyan economy",
+        "kenyan politics",
+        "east africa",
+        "eac",
+        "east african",
     ]
 
     africa_broad_topics = [
-        "africa", "african", "african union", "au",
-        "democracy", "governance", "election", "constitution",
-        "development", "economic", "trade", "investment",
-        "climate", "environment", "energy", "agriculture",
-        "health", "education", "technology", "innovation",
-        "security", "peace", "conflict", "human rights",
-        "gender", "inequality", "poverty", "food security",
+        "africa",
+        "african",
+        "african union",
+        "au",
+        "democracy",
+        "governance",
+        "election",
+        "constitution",
+        "development",
+        "economic",
+        "trade",
+        "investment",
+        "climate",
+        "environment",
+        "energy",
+        "agriculture",
+        "health",
+        "education",
+        "technology",
+        "innovation",
+        "security",
+        "peace",
+        "conflict",
+        "human rights",
+        "gender",
+        "inequality",
+        "poverty",
+        "food security",
     ]
 
     def start_requests(self):
@@ -101,23 +135,33 @@ class AfricaAnalysisSpider(scrapy.Spider):
 
         for entry in feed.entries[:100]:
             title = entry.title.lower() if entry.title else ""
-            summary = getattr(entry, 'summary', '').lower() if hasattr(entry, 'summary') else ''
+            summary = (
+                getattr(entry, "summary", "").lower()
+                if hasattr(entry, "summary")
+                else ""
+            )
             combined = f"{title} {summary}"
 
             is_kenya_relevant = any(kw in combined for kw in self.kenya_keywords)
-            is_africa_broad = any(topic in combined for topic in self.africa_broad_topics)
+            is_africa_broad = any(
+                topic in combined for topic in self.africa_broad_topics
+            )
 
             tags = []
-            if hasattr(entry, 'tags'):
-                tags = [t.get('term', '').lower() for t in entry.tags if hasattr(t, 'get')]
+            if hasattr(entry, "tags"):
+                tags = [
+                    t.get("term", "").lower() for t in entry.tags if hasattr(t, "get")
+                ]
                 is_kenya_relevant = is_kenya_relevant or any("kenya" in t for t in tags)
-                is_africa_broad = is_africa_broad or any(("africa" in t or "kenya" in t) for t in tags)
+                is_africa_broad = is_africa_broad or any(
+                    ("africa" in t or "kenya" in t) for t in tags
+                )
 
             if not (is_kenya_relevant or is_africa_broad):
                 continue
 
             pub_date = None
-            if hasattr(entry, 'published'):
+            if hasattr(entry, "published"):
                 try:
                     pub_date = date_parser.parse(entry.published).isoformat()
                 except Exception:
@@ -128,9 +172,13 @@ class AfricaAnalysisSpider(scrapy.Spider):
                 callback=self.parse_article,
                 meta={
                     "title": entry.title,
-                    "source_name": f"{feed_name} - {getattr(entry, 'source', '')}" if hasattr(entry, 'source') else feed_name,
+                    "source_name": (
+                        f"{feed_name} - {getattr(entry, 'source', '')}"
+                        if hasattr(entry, "source")
+                        else feed_name
+                    ),
                     "pub_date": pub_date,
-                    "summary": getattr(entry, 'summary', ''),
+                    "summary": getattr(entry, "summary", ""),
                     "tags": tags,
                 },
                 errback=self.errback_article,
@@ -142,21 +190,27 @@ class AfricaAnalysisSpider(scrapy.Spider):
         pub_date = response.meta.get("pub_date")
         rss_summary = response.meta.get("summary", "")
 
-        extracted_title = response.css('h1::text').get()
+        extracted_title = response.css("h1::text").get()
         if extracted_title:
             title = extracted_title.strip()
 
-        content_parts = response.css('article p::text, .content p::text, [itemprop="articleBody"] p::text, main p::text').getall()
+        content_parts = response.css(
+            'article p::text, .content p::text, [itemprop="articleBody"] p::text, main p::text'
+        ).getall()
         content = "\n".join(p.strip() for p in content_parts if p.strip())
 
         if not content or len(content) < 100:
             content = rss_summary
 
-        author = response.css('.author::text, .byline::text, [rel="author"]::text').get()
+        author = response.css(
+            '.author::text, .byline::text, [rel="author"]::text'
+        ).get()
         if author:
             author = author.strip()
 
-        date_str = response.css('time::attr(datetime), meta[property="article:published_time"]::attr(content)').get()
+        date_str = response.css(
+            'time::attr(datetime), meta[property="article:published_time"]::attr(content)'
+        ).get()
         if date_str:
             pub_date = date_str.strip()
         elif not pub_date:

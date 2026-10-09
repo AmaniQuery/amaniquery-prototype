@@ -19,10 +19,10 @@ from datetime import datetime
 from typing import Dict, Literal
 import json
 
-
 # ============================================================================
 # CURRENT DATE (Dynamically updated)
 # ============================================================================
+
 
 def get_current_date() -> str:
     """Returns current date in Kenyan format"""
@@ -38,17 +38,17 @@ CURRENT_DATE = get_current_date()  # November 23, 2025
 
 JSON_SCHEMA_WANJIKU = {
     "reasoning_content": "Internal chain-of-thought, planning, and analysis...",
-    "content": "The final formatted response in Markdown..."
+    "content": "The final formatted response in Markdown...",
 }
 
 JSON_SCHEMA_WAKILI = {
     "reasoning_content": "Internal legal analysis, rule application, and citation verification...",
-    "content": "The final formatted legal opinion in Markdown..."
+    "content": "The final formatted legal opinion in Markdown...",
 }
 
 JSON_SCHEMA_MWANAHABARI = {
     "reasoning_content": "Internal data analysis, fact-checking, and trend identification...",
-    "content": "The final formatted news report in Markdown..."
+    "content": "The final formatted news report in Markdown...",
 }
 
 
@@ -191,18 +191,17 @@ You must ALWAYS respond using a strict JSON-like structure with two distinct fie
 # UTILITY FUNCTIONS
 # ============================================================================
 
-def get_system_prompt(
-    query_type: Literal["wanjiku", "wakili", "mwanahabari"]
-) -> str:
+
+def get_system_prompt(query_type: Literal["wanjiku", "wakili", "mwanahabari"]) -> str:
     """
     Returns the appropriate system prompt for the given query type.
-    
+
     Args:
         query_type: One of "wanjiku", "wakili", "mwanahabari"
-        
+
     Returns:
         The corresponding system prompt string
-        
+
     Example:
         >>> prompt = get_system_prompt("wanjiku")
         >>> # Use prompt in your LLM call
@@ -210,79 +209,78 @@ def get_system_prompt(
     prompts = {
         "wanjiku": SYSTEM_PROMPT_WANJIKU,
         "wakili": SYSTEM_PROMPT_WAKILI,
-        "mwanahabari": SYSTEM_PROMPT_MWANAHABARI
+        "mwanahabari": SYSTEM_PROMPT_MWANAHABARI,
     }
-    
+
     if query_type not in prompts:
-        raise ValueError(f"Invalid query_type: {query_type}. Must be one of: wanjiku, wakili, mwanahabari")
-    
+        raise ValueError(
+            f"Invalid query_type: {query_type}. Must be one of: wanjiku, wakili, mwanahabari"
+        )
+
     return prompts[query_type]
 
 
-def get_json_schema(
-    query_type: Literal["wanjiku", "wakili", "mwanahabari"]
-) -> Dict:
+def get_json_schema(query_type: Literal["wanjiku", "wakili", "mwanahabari"]) -> Dict:
     """
     Returns the JSON schema for the given query type.
-    
+
     Args:
         query_type: One of "wanjiku", "wakili", "mwanahabari"
-        
+
     Returns:
         The corresponding JSON schema dictionary
     """
     schemas = {
         "wanjiku": JSON_SCHEMA_WANJIKU,
         "wakili": JSON_SCHEMA_WAKILI,
-        "mwanahabari": JSON_SCHEMA_MWANAHABARI
+        "mwanahabari": JSON_SCHEMA_MWANAHABARI,
     }
-    
+
     if query_type not in schemas:
         raise ValueError(f"Invalid query_type: {query_type}")
-    
+
     return schemas[query_type]
 
 
 def validate_response(response: Dict, query_type: str) -> bool:
     """
     Validates that a response matches the expected schema.
-    
+
     Args:
         response: The LLM response dictionary
         query_type: The persona type
-        
+
     Returns:
         True if valid, False otherwise
     """
     # All schemas now share the same structure
     required_keys = ["reasoning_content", "content"]
-    
+
     # Check all required keys exist
     for key in required_keys:
         if key not in response:
             return False
-    
+
     # Type checking
-    return (isinstance(response.get("reasoning_content"), str) and
-            isinstance(response.get("content"), str))
+    return isinstance(response.get("reasoning_content"), str) and isinstance(
+        response.get("content"), str
+    )
 
 
 def format_prompt_with_context(
-    query_type: str,
-    user_query: str,
-    retrieved_context: str
+    query_type: str, user_query: str, retrieved_context: str
 ) -> str:
     """
     Combines system prompt with user query and RAG context.
-    
+
     Args:
         query_type: One of "wanjiku", "wakili", "mwanahabari"
         user_query: The user's original query
         retrieved_context: Context retrieved from RAG
-        
+
     Returns:
         Complete prompt ready for LLM
-        
+
     Example:
         >>> prompt = format_prompt_with_context(
         ...     "wanjiku",
@@ -291,7 +289,7 @@ def format_prompt_with_context(
         ... )
     """
     system_prompt = get_system_prompt(query_type)
-    
+
     full_prompt = f"""{system_prompt}
 
 ---
@@ -307,7 +305,7 @@ def format_prompt_with_context(
 ---
 
 **YOUR RESPONSE (valid JSON only):**"""
-    
+
     return full_prompt
 
 
@@ -316,59 +314,59 @@ def format_prompt_with_context(
 # ============================================================================
 
 if __name__ == "__main__":
-    print("="*80)
+    print("=" * 80)
     print("KENYANIZER MODULE - SYSTEM PROMPTS")
-    print("="*80)
-    
+    print("=" * 80)
+
     print("\\n📊 PROMPT STATISTICS")
-    print("-"*80)
-    
+    print("-" * 80)
+
     for persona in ["wanjiku", "wakili", "mwanahabari"]:
         prompt = get_system_prompt(persona)
         word_count = len(prompt.split())
         char_count = len(prompt)
-        
+
         print(f"\\n{persona.upper()}:")
         print(f"  Words: {word_count}")
         print(f"  Characters: {char_count}")
         print(f"  Estimated tokens: ~{word_count // 0.75:.0f}")
-    
-    print("\\n" + "="*80)
+
+    print("\\n" + "=" * 80)
     print("SAMPLE USAGE")
-    print("="*80)
-    
+    print("=" * 80)
+
     # Example: Get prompt for wanjiku
     wanjiku_prompt = get_system_prompt("wanjiku")
     print(f"\\nWANJIKU PROMPT (first 300 chars):")
     print(wanjiku_prompt[:300] + "...")
-    
+
     # Example: Format complete prompt
-    print("\\n" + "="*80)
+    print("\\n" + "=" * 80)
     print("COMPLETE PROMPT EXAMPLE")
-    print("="*80)
-    
+    print("=" * 80)
+
     complete_prompt = format_prompt_with_context(
         query_type="wanjiku",
         user_query="Kanjo wameongeza parking fees aje?",
-        retrieved_context="Nairobi County Assembly passed Resolution 42/2024 increasing CBD parking fees to KES 300..."
+        retrieved_context="Nairobi County Assembly passed Resolution 42/2024 increasing CBD parking fees to KES 300...",
     )
-    
+
     print(f"\\nComplete prompt length: {len(complete_prompt)} characters")
     print(f"Preview (first 400 chars):\\n{complete_prompt[:400]}...")
-    
+
     # Example: Validate response
-    print("\\n" + "="*80)
+    print("\\n" + "=" * 80)
     print("RESPONSE VALIDATION EXAMPLE")
-    print("="*80)
-    
+    print("=" * 80)
+
     mock_response = {
         "reasoning_content": "Checking the latest fee schedule...",
-        "content": "The fee is **KES 300**."
+        "content": "The fee is **KES 300**.",
     }
-    
+
     is_valid = validate_response(mock_response, "wanjiku")
     print(f"\\nMock response valid: {is_valid}")
-    
-    print("\\n" + "="*80)
+
+    print("\\n" + "=" * 80)
     print("ALL TESTS COMPLETE")
-    print("="*80)
+    print("=" * 80)

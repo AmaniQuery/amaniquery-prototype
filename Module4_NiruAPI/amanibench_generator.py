@@ -2,19 +2,19 @@
 AmaniBench v1.0 - Evaluation Benchmark for Kenyan Civic RAG Systems
 ====================================================================
 
-A comprehensive 100-question evaluation dataset specifically designed for 
+A comprehensive 100-question evaluation dataset specifically designed for
 assessing Kenyan civic AI systems across 5 critical categories.
 
 Categories (20 questions each):
 1. Sheng Understanding - Tests ability to parse Kenyan street slang
-2. Legal Citation Accuracy - Tests precision in legal references  
+2. Legal Citation Accuracy - Tests precision in legal references
 3. Daily Life Impact - Tests practical explanation of policies
 4. Ambiguity Handling - Tests understanding of Kenyan colloquialisms
 5. Temporal Awareness - Tests understanding of recent events timeline
 
 Usage:
     python amanibench_generator.py > amanibench_v1.jsonl
-    
+
 Author: AmaniQuery Team
 Date: November 2025
 """
@@ -25,181 +25,300 @@ from typing import List, Dict, Any
 
 def generate_amanibench() -> List[Dict[str, Any]]:
     """Generate all 100 benchmark questions"""
-    
+
     benchmark = []
-    
+
     # ========================================================================
     # CATEGORY 1: SHENG UNDERSTANDING (20 questions)
     # ========================================================================
-    
+
     sheng_questions = [
         {
             "category": "sheng_understanding",
             "query": "Kanjo wameamua nini kuhusu parking doh?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["Nairobi City County", "parking fees", "KES 300", "CBD", "increase"],
+            "golden_answer_facts": [
+                "Nairobi City County",
+                "parking fees",
+                "KES 300",
+                "CBD",
+                "increase",
+            ],
             "acceptable_languages": ["sheng", "mixed", "swahili"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "sheng_understanding",
             "query": "Bunge wanapanga kuongeza tax ya mat ama?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["Parliament", "public service vehicles", "matatu", "taxation", "proposal"],
+            "golden_answer_facts": [
+                "Parliament",
+                "public service vehicles",
+                "matatu",
+                "taxation",
+                "proposal",
+            ],
             "acceptable_languages": ["sheng", "mixed"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "sheng_understanding",
             "query": "Hii Finance Bill inasema nini kuhusu maji na stima?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["Finance Bill", "water services", "electricity", "VAT", "utilities"],
+            "golden_answer_facts": [
+                "Finance Bill",
+                "water services",
+                "electricity",
+                "VAT",
+                "utilities",
+            ],
             "acceptable_languages": ["mixed", "swahili"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "sheng_understanding",
             "query": "Mheshimiwa wa Starehe alisema aje kuhusu housing levy?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["Member of Parliament", "Starehe constituency", "housing levy", "3%", "opinion"],
+            "golden_answer_facts": [
+                "Member of Parliament",
+                "Starehe constituency",
+                "housing levy",
+                "3%",
+                "opinion",
+            ],
             "acceptable_languages": ["mixed", "swahili"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "sheng_understanding",
             "query": "Serikali wanataka kupunguza doh ya healthcare ama waongeze?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["government", "healthcare budget", "increase or decrease", "allocation"],
+            "golden_answer_facts": [
+                "government",
+                "healthcare budget",
+                "increase or decrease",
+                "allocation",
+            ],
             "acceptable_languages": ["sheng", "mixed"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "sheng_understanding",
             "query": "Nini maana ya 'Kidero grass' na ilitumika wapi?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["Kidero grass", "Nairobi beautification", "Governor Kidero", "city aesthetics", "cost controversy"],
+            "golden_answer_facts": [
+                "Kidero grass",
+                "Nairobi beautification",
+                "Governor Kidero",
+                "city aesthetics",
+                "cost controversy",
+            ],
             "acceptable_languages": ["sheng", "mixed"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "sheng_understanding",
             "query": "Gava ilisema nini kuhusu bei ya unga?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["government", "maize flour price", "subsidy", "food security", "cost of living"],
+            "golden_answer_facts": [
+                "government",
+                "maize flour price",
+                "subsidy",
+                "food security",
+                "cost of living",
+            ],
             "acceptable_languages": ["sheng", "mixed", "swahili"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "sheng_understanding",
             "query": "Hii Hustler Fund inasaidia aje wasee wa biashara ndogo?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["Hustler Fund", "small businesses", "loans", "financial inclusion", "government initiative"],
+            "golden_answer_facts": [
+                "Hustler Fund",
+                "small businesses",
+                "loans",
+                "financial inclusion",
+                "government initiative",
+            ],
             "acceptable_languages": ["sheng", "mixed"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "sheng_understanding",
             "query": "Nini shida na barabara ya Eastern Bypass, na gava inafanya nini?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["Eastern Bypass", "traffic congestion", "road expansion", "infrastructure projects", "government plans"],
+            "golden_answer_facts": [
+                "Eastern Bypass",
+                "traffic congestion",
+                "road expansion",
+                "infrastructure projects",
+                "government plans",
+            ],
             "acceptable_languages": ["sheng", "mixed"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "sheng_understanding",
             "query": "Waziri wa Elimu alisema nini kuhusu CBC na exams?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["Education Cabinet Secretary", "CBC curriculum", "examinations", "education reforms", "junior secondary"],
+            "golden_answer_facts": [
+                "Education Cabinet Secretary",
+                "CBC curriculum",
+                "examinations",
+                "education reforms",
+                "junior secondary",
+            ],
             "acceptable_languages": ["sheng", "mixed", "swahili"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "sheng_understanding",
             "query": "Kuna sheria mpya kuhusu kutupa takataka ovyo ovyo Nairobi?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["Nairobi County", "waste management", "environmental laws", "fines", "public sanitation"],
+            "golden_answer_facts": [
+                "Nairobi County",
+                "waste management",
+                "environmental laws",
+                "fines",
+                "public sanitation",
+            ],
             "acceptable_languages": ["sheng", "mixed"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "sheng_understanding",
             "query": "Nini maana ya 'Azimio' na 'Kenya Kwanza' kwa siasa za Kenya?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["Azimio la Umoja", "Kenya Kwanza", "political coalitions", "general elections", "political ideologies"],
+            "golden_answer_facts": [
+                "Azimio la Umoja",
+                "Kenya Kwanza",
+                "political coalitions",
+                "general elections",
+                "political ideologies",
+            ],
             "acceptable_languages": ["sheng", "mixed", "swahili"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "sheng_understanding",
             "query": "Bei ya mafuta imepanda ama imeshuka wiki hii?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["fuel prices", "EPRA", "petrol", "diesel", "price review"],
+            "golden_answer_facts": [
+                "fuel prices",
+                "EPRA",
+                "petrol",
+                "diesel",
+                "price review",
+            ],
             "acceptable_languages": ["sheng", "mixed"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "sheng_understanding",
             "query": "Nini mpango wa serikali kuhusu vijana wasio na kazi?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["youth unemployment", "government programs", "job creation", "internships", "skills training"],
+            "golden_answer_facts": [
+                "youth unemployment",
+                "government programs",
+                "job creation",
+                "internships",
+                "skills training",
+            ],
             "acceptable_languages": ["sheng", "mixed", "swahili"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "sheng_understanding",
             "query": "Kuna sheria gani mpya kuhusu matumizi ya plastic bags?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["plastic bags ban", "environmental protection", "NEMA", "alternative packaging", "fines"],
+            "golden_answer_facts": [
+                "plastic bags ban",
+                "environmental protection",
+                "NEMA",
+                "alternative packaging",
+                "fines",
+            ],
             "acceptable_languages": ["sheng", "mixed"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "sheng_understanding",
             "query": "Nini maana ya 'BBI' na ilikuwa inataka kufanya nini?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["Building Bridges Initiative", "constitutional amendments", "political reforms", "national unity", "referendum"],
+            "golden_answer_facts": [
+                "Building Bridges Initiative",
+                "constitutional amendments",
+                "political reforms",
+                "national unity",
+                "referendum",
+            ],
             "acceptable_languages": ["sheng", "mixed", "swahili"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "sheng_understanding",
             "query": "Serikali inafanya nini kusaidia wakulima wa kahawa?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["coffee farmers", "subsidies", "market access", "agricultural reforms", "government support"],
+            "golden_answer_facts": [
+                "coffee farmers",
+                "subsidies",
+                "market access",
+                "agricultural reforms",
+                "government support",
+            ],
             "acceptable_languages": ["sheng", "mixed"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "sheng_understanding",
             "query": "Nini mpango wa Nairobi County kuhusu mabasi ya BRT?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["Nairobi County", "BRT system", "public transport", "traffic decongestion", "infrastructure"],
+            "golden_answer_facts": [
+                "Nairobi County",
+                "BRT system",
+                "public transport",
+                "traffic decongestion",
+                "infrastructure",
+            ],
             "acceptable_languages": ["sheng", "mixed"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "sheng_understanding",
             "query": "Kuna sheria mpya kuhusu data privacy na simu zetu?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["data protection act", "privacy laws", "mobile data", "digital rights", "CAK"],
+            "golden_answer_facts": [
+                "data protection act",
+                "privacy laws",
+                "mobile data",
+                "digital rights",
+                "CAK",
+            ],
             "acceptable_languages": ["sheng", "mixed"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "sheng_understanding",
             "query": "Nini maana ya 'mzinga' kwa lugha ya mtaani na inahusiana na nini?",
             "expected_query_type": "public_interest",
-            "golden_answer_facts": ["mzinga", "slang", "alcohol", "illicit brews", "public health concern"],
+            "golden_answer_facts": [
+                "mzinga",
+                "slang",
+                "alcohol",
+                "illicit brews",
+                "public health concern",
+            ],
             "acceptable_languages": ["sheng", "mixed"],
-            "difficulty": "hard"
-        }
+            "difficulty": "hard",
+        },
     ]
     benchmark.extend(sheng_questions)
-    
+
     # ========================================================================
     # CATEGORY 2: LEGAL CITATION ACCURACY (20 questions)
     # ========================================================================
-    
+
     legal_questions = [
         {
             "category": "legal_citation",
@@ -212,10 +331,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "freedom from torture",
                 "freedom from slavery",
                 "right to a fair trial",
-                "right to an order of habeas corpus"
+                "right to an order of habeas corpus",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "legal_citation",
@@ -226,10 +345,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "unfair termination",
                 "Section 45",
                 "grounds for termination",
-                "procedure for termination"
+                "procedure for termination",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "legal_citation",
@@ -241,10 +360,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "public land",
                 "community land",
                 "private land",
-                "land tenure"
+                "land tenure",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "legal_citation",
@@ -258,10 +377,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "transparency",
                 "purpose limitation",
                 "data minimization",
-                "accuracy"
+                "accuracy",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "legal_citation",
@@ -274,10 +393,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "environmental policy",
                 "coordination",
                 "enforcement",
-                "environmental impact assessments"
+                "environmental impact assessments",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "legal_citation",
@@ -288,10 +407,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "hearsay evidence",
                 "definition",
                 "admissibility",
-                "exceptions to hearsay rule"
+                "exceptions to hearsay rule",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "legal_citation",
@@ -302,10 +421,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "theft",
                 "definition of theft",
                 "fraudulent intent",
-                "taking property without consent"
+                "taking property without consent",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "legal_citation",
@@ -317,10 +436,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "testator's capacity",
                 "writing requirement",
                 "signature",
-                "attestation by witnesses"
+                "attestation by witnesses",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "legal_citation",
@@ -332,10 +451,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "values and principles",
                 "high standards of professional ethics",
                 "efficient, effective and economic use of resources",
-                "accountability"
+                "accountability",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "legal_citation",
@@ -346,10 +465,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "bail and bond",
                 "right to bail",
                 "conditions for bail",
-                "factors considered by court"
+                "factors considered by court",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "legal_citation",
@@ -361,10 +480,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "definition",
                 "duty to maintain",
                 "duty to protect",
-                "duty to educate"
+                "duty to educate",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "legal_citation",
@@ -377,10 +496,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "patents",
                 "industrial designs",
                 "Copyright Act",
-                "Industrial Property Act"
+                "Industrial Property Act",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "legal_citation",
@@ -392,10 +511,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "Article 23",
                 "High Court's jurisdiction",
                 "legality of administrative action",
-                "prerogative orders (certiorari, mandamus, prohibition)"
+                "prerogative orders (certiorari, mandamus, prohibition)",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "legal_citation",
@@ -408,10 +527,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "transparency",
                 "accountability",
                 "cost-effectiveness",
-                "competition"
+                "competition",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "legal_citation",
@@ -423,10 +542,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "civil contempt",
                 "criminal contempt",
                 "penalties",
-                "disobedience of court orders"
+                "disobedience of court orders",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "legal_citation",
@@ -438,10 +557,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "Chapter 16",
                 "parliamentary initiative",
                 "popular initiative",
-                "referendum"
+                "referendum",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "legal_citation",
@@ -454,10 +573,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "right to safety",
                 "right to information",
                 "right to redress",
-                "defective products"
+                "defective products",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "legal_citation",
@@ -470,18 +589,18 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "penalties",
                 "fines",
                 "imprisonment",
-                "suspension of license"
+                "suspension of license",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "easy"
-        }
+            "difficulty": "easy",
+        },
     ]
     benchmark.extend(legal_questions)
-    
+
     # ========================================================================
     # CATEGORY 3: DAILY LIFE IMPACT (20 questions)
     # ========================================================================
-    
+
     impact_questions = [
         {
             "category": "daily_impact",
@@ -493,10 +612,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "Consumer Price Index (CPI)",
                 "cost of living",
                 "food basket prices",
-                "government subsidies"
+                "government subsidies",
             ],
             "acceptable_languages": ["english", "swahili", "mixed"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "daily_impact",
@@ -508,10 +627,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "Pay As You Earn (PAYE)",
                 "Housing Levy",
                 "National Social Security Fund (NSSF)",
-                "National Hospital Insurance Fund (NHIF)"
+                "National Hospital Insurance Fund (NHIF)",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "daily_impact",
@@ -523,10 +642,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "right to refund/replacement",
                 "proof of purchase (receipt)",
                 "return policy",
-                "Kenya Bureau of Standards (KEBS)"
+                "Kenya Bureau of Standards (KEBS)",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "daily_impact",
@@ -537,10 +656,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "bank charges",
                 "transaction limits",
                 "using own bank's ATM",
-                "mobile banking alternatives"
+                "mobile banking alternatives",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "daily_impact",
@@ -552,10 +671,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "single-use plastic ban (2020)",
                 "alternative packaging materials",
                 "cost implications for businesses",
-                "environmental benefits"
+                "environmental benefits",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "daily_impact",
@@ -567,10 +686,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "age requirements",
                 "skills match",
                 "background checks (for vulnerable groups)",
-                "local community initiatives"
+                "local community initiatives",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "daily_impact",
@@ -582,10 +701,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "MyPower app",
                 "social media channels",
                 "nearest KPLC office",
-                "account number/meter number"
+                "account number/meter number",
             ],
             "acceptable_languages": ["english", "swahili", "mixed"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "daily_impact",
@@ -600,18 +719,18 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "transfer of ownership",
                 "stamp duty",
                 "land rates clearance",
-                "lawyer engagement"
+                "lawyer engagement",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "hard"
-        }
+            "difficulty": "hard",
+        },
     ]
     benchmark.extend(impact_questions)
-    
+
     # ========================================================================
-    # CATEGORY 4: AMBIGUITY HANDLING (20 questions)  
+    # CATEGORY 4: AMBIGUITY HANDLING (20 questions)
     # ========================================================================
-    
+
     ambiguity_questions = [
         {
             "category": "ambiguity",
@@ -621,10 +740,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "Parliament of Kenya",
                 "legislative activities",
                 "parliamentary debates",
-                "bills under consideration"
+                "bills under consideration",
             ],
             "acceptable_languages": ["english", "swahili", "mixed"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "ambiguity",
@@ -634,10 +753,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "Office of the President",
                 "Presidential directives",
                 "government policy",
-                "national announcements"
+                "national announcements",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "ambiguity",
@@ -648,10 +767,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "County Budget",
                 "Fiscal Year 2024/2025",
                 "Supplementary Budget",
-                "Treasury Cabinet Secretary"
+                "Treasury Cabinet Secretary",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "ambiguity",
@@ -662,10 +781,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "stock market performance",
                 "commodity prices (e.g., fuel, maize)",
                 "economic indicators",
-                "inflation"
+                "inflation",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "ambiguity",
@@ -676,10 +795,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "Housing Act",
                 "Digital Economy Bill",
                 "Public Participation",
-                "Parliamentary proceedings"
+                "Parliamentary proceedings",
             ],
             "acceptable_languages": ["english", "swahili", "mixed"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "ambiguity",
@@ -691,10 +810,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "Kenya-Tanzania border",
                 "security operations",
                 "trade activities",
-                "refugee movements"
+                "refugee movements",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "ambiguity",
@@ -706,10 +825,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "High Court",
                 "Magistrate Court",
                 "specific case name/topic",
-                "judicial pronouncement"
+                "judicial pronouncement",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "ambiguity",
@@ -720,10 +839,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "system downtime",
                 "transaction issues",
                 "M-Pesa services (send money, pay bill, etc.)",
-                "customer care"
+                "customer care",
             ],
             "acceptable_languages": ["english", "swahili", "mixed"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "ambiguity",
@@ -734,10 +853,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "visa requirements",
                 "eTA (Electronic Travel Authorization)",
                 "COVID-19 travel protocols (if applicable)",
-                "customs regulations"
+                "customs regulations",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "ambiguity",
@@ -748,10 +867,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "domestic tour (e.g., specific county)",
                 "international visit (e.g., specific country)",
                 "purpose of visit (e.g., development projects, bilateral talks)",
-                "presidential engagements"
+                "presidential engagements",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "ambiguity",
@@ -762,10 +881,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "retail price",
                 "brand variations (e.g., sifted, unsifted)",
                 "regional price differences",
-                "government subsidies"
+                "government subsidies",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "ambiguity",
@@ -776,10 +895,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "Parliament (National Assembly, Senate)",
                 "assent by President",
                 "gazettement",
-                "legislative process"
+                "legislative process",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "ambiguity",
@@ -791,10 +910,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "exchange rate (KES to USD)",
                 "interest rates",
                 "employment outlook",
-                "Central Bank of Kenya (CBK) reports"
+                "Central Bank of Kenya (CBK) reports",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "ambiguity",
@@ -806,10 +925,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "secondary school",
                 "university/college",
                 "specific term (e.g., Term 1, Term 2)",
-                "academic year"
+                "academic year",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "ambiguity",
@@ -820,10 +939,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "Kenya Rural Roads Authority (KERRA)",
                 "specific road project (e.g., Nairobi Expressway, bypasses)",
                 "location/region",
-                "infrastructure development"
+                "infrastructure development",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "ambiguity",
@@ -835,10 +954,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "cargo services",
                 "extension plans (e.g., Naivasha, Kisumu)",
                 "debt repayment",
-                "operations and management"
+                "operations and management",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "ambiguity",
@@ -849,10 +968,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "government initiatives",
                 "private sector developments",
                 "location (e.g., specific estate, county)",
-                "eligibility criteria"
+                "eligibility criteria",
             ],
             "acceptable_languages": ["english"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "ambiguity",
@@ -864,10 +983,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "Rift Valley Highlands (e.g., Nakuru, Kericho)",
                 "rainfall patterns",
                 "temperatures",
-                "forecast for specific days"
+                "forecast for specific days",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "ambiguity",
@@ -878,10 +997,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "Directorate of Criminal Investigations (DCI)",
                 "specific crime/incident (e.g., robbery, murder)",
                 "public appeal for information",
-                "ongoing investigations"
+                "ongoing investigations",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "ambiguity",
@@ -892,18 +1011,18 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "teams/individuals involved",
                 "league/tournament (e.g., FKF Premier League, Kenya Sevens)",
                 "recent results",
-                "upcoming fixtures"
+                "upcoming fixtures",
             ],
             "acceptable_languages": ["english", "swahili", "mixed"],
-            "difficulty": "easy"
-        }
+            "difficulty": "easy",
+        },
     ]
     benchmark.extend(ambiguity_questions)
-    
+
     # ========================================================================
     # CATEGORY 5: TEMPORAL AWARENESS (20 questions)
     # ========================================================================
-    
+
     temporal_questions = [
         {
             "category": "temporal",
@@ -914,10 +1033,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "June 26 2024",
                 "mass protests",
                 "Bill rejected",
-                "not enacted"
+                "not enacted",
             ],
             "acceptable_languages": ["english", "swahili", "mixed"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "temporal",
@@ -927,10 +1046,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "yes, employee 3%",
                 "employer contribution suspended",
                 "court cases pending",
-                "Finance Act 2023 provisions"
+                "Finance Act 2023 provisions",
             ],
             "acceptable_languages": ["english", "swahili", "mixed"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "temporal",
@@ -940,10 +1059,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "August 9, 2022",
                 "William Ruto elected President",
                 "IEBC",
-                "presidential, parliamentary, county elections"
+                "presidential, parliamentary, county elections",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "temporal",
@@ -953,10 +1072,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "operational from Mombasa to Naivasha",
                 "extension to Kisumu/Malaba stalled",
                 "debt repayment to China Exim Bank",
-                "freight and passenger services"
+                "freight and passenger services",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "temporal",
@@ -966,10 +1085,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "phased implementation",
                 "Junior Secondary School (JSS) challenges",
                 "Presidential Working Party on Education Reforms (PWPER)",
-                "Grade 8 transition"
+                "Grade 8 transition",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "temporal",
@@ -980,10 +1099,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "inflation rate",
                 "exchange rate (KES to USD)",
                 "interest rates (CBR)",
-                "exports/imports"
+                "exports/imports",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "temporal",
@@ -993,10 +1112,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "every 10 years",
                 "next in 2029",
                 "Kenya National Bureau of Statistics (KNBS)",
-                "population, housing, demographic data"
+                "population, housing, demographic data",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "temporal",
@@ -1006,10 +1125,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "World Athletics Championships (if applicable)",
                 "Safari Rally WRC",
                 "local football leagues (FKF Premier League)",
-                "rugby tournaments (Kenya Sevens)"
+                "rugby tournaments (Kenya Sevens)",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "temporal",
@@ -1019,10 +1138,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "ongoing initiative",
                 "progress reports",
                 "National Tree Growing Day",
-                "Ministry of Environment"
+                "Ministry of Environment",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "temporal",
@@ -1032,10 +1151,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "county governments established 2013",
                 "Council of Governors (CoG)",
                 "functions transferred from national government",
-                "challenges and successes"
+                "challenges and successes",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "temporal",
@@ -1045,10 +1164,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "December 12, 1963",
                 "Jomo Kenyatta first President",
                 "from British colonial rule",
-                "Jamhuri Day"
+                "Jamhuri Day",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "temporal",
@@ -1058,10 +1177,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "Grand Coalition Government",
                 "new constitution 2010",
                 "ICC cases",
-                "electoral reforms"
+                "electoral reforms",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "temporal",
@@ -1071,10 +1190,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "Central Bank of Kenya (CBK) licensing",
                 "Digital Credit Providers (DCPs) Act",
                 "consumer protection",
-                "interest rate caps/transparency"
+                "interest rate caps/transparency",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "temporal",
@@ -1084,10 +1203,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "March to May",
                 "Kenya Meteorological Department data",
                 "impact on agriculture/water levels",
-                "comparison to historical averages"
+                "comparison to historical averages",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "temporal",
@@ -1097,10 +1216,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "Africa Climate Summit (ACS) 2023",
                 "UNEP headquarters in Nairobi",
                 "TICAD, WTO Ministerial Conference",
-                "venue: KICC"
+                "venue: KICC",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "temporal",
@@ -1110,10 +1229,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "depreciation trends",
                 "Central Bank interventions",
                 "factors: imports, debt, remittances",
-                "exchange rate data"
+                "exchange rate data",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "temporal",
@@ -1123,10 +1242,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "phased implementation",
                 "NHIF reforms",
                 "Community Health Promoters (CHPs)",
-                "challenges in funding/infrastructure"
+                "challenges in funding/infrastructure",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "medium"
+            "difficulty": "medium",
         },
         {
             "category": "temporal",
@@ -1136,10 +1255,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "Martha Koome",
                 "May 2021",
                 "Judicial Service Commission (JSC)",
-                "Supreme Court"
+                "Supreme Court",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "easy"
+            "difficulty": "easy",
         },
         {
             "category": "temporal",
@@ -1149,10 +1268,10 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "ongoing multi-national project",
                 "phased development (port, roads, railway, pipeline)",
                 "initial berths operational",
-                "long-term vision"
+                "long-term vision",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "hard"
+            "difficulty": "hard",
         },
         {
             "category": "temporal",
@@ -1162,21 +1281,21 @@ def generate_amanibench() -> List[Dict[str, Any]]:
                 "transition from 8-4-4 to CBC",
                 "free primary and day secondary education",
                 "TVET reforms",
-                "university funding model"
+                "university funding model",
             ],
             "acceptable_languages": ["english", "swahili"],
-            "difficulty": "hard"
-        }
+            "difficulty": "hard",
+        },
     ]
     benchmark.extend(temporal_questions)
-    
+
     # Combine all questions
     benchmark.extend(sheng_questions)
     benchmark.extend(legal_questions)
     benchmark.extend(impact_questions)
     benchmark.extend(ambiguity_questions)
     benchmark.extend(temporal_questions)
-    
+
     return benchmark
 
 
@@ -1188,68 +1307,68 @@ def print_ndjson(benchmark: List[Dict]):
 
 def save_ndjson(benchmark: List[Dict], filename: str = "amanibench_v1.jsonl"):
     """Save benchmark to NDJSON file"""
-    with open(filename, 'w', encoding='utf-8') as f:
+    with open(filename, "w", encoding="utf-8") as f:
         for item in benchmark:
-            f.write(json.dumps(item, ensure_ascii=False) + '\n')
+            f.write(json.dumps(item, ensure_ascii=False) + "\n")
     print(f"✓ Saved {len(benchmark)} questions to {filename}")
 
 
 def print_stats(benchmark: List[Dict]):
     """Print benchmark statistics"""
     from collections import Counter
-    
-    print("\n" + "="*80)
+
+    print("\n" + "=" * 80)
     print("AMANIBENCH v1.0 STATISTICS")
-    print("="*80)
-    
+    print("=" * 80)
+
     print(f"\nTotal Questions: {len(benchmark)}")
-    
+
     # By category
-    categories = Counter(q['category'] for q in benchmark)
+    categories = Counter(q["category"] for q in benchmark)
     print("\nBy Category:")
     for cat, count in categories.items():
         print(f"  {cat:25s}: {count:3d} questions")
-    
+
     # By difficulty
-    difficulties = Counter(q['difficulty'] for q in benchmark)
+    difficulties = Counter(q["difficulty"] for q in benchmark)
     print("\nBy Difficulty:")
     for diff, count in difficulties.items():
         print(f"  {diff:10s}: {count:3d} questions")
-    
+
     # By expected query type
-    types = Counter(q['expected_query_type'] for q in benchmark)
+    types = Counter(q["expected_query_type"] for q in benchmark)
     print("\nBy Expected Query Type:")
     for qtype, count in types.items():
         print(f"  {qtype:20s}: {count:3d} questions")
-    
-    print("\n" + "="*80)
+
+    print("\n" + "=" * 80)
 
 
 if __name__ == "__main__":
     print("Generating AmaniBench v1.0...")
-    
+
     benchmark = generate_amanibench()
-    
+
     # Print statistics
     print_stats(benchmark)
-    
+
     # Save to file
     save_ndjson(benchmark, "amanibench_v1.jsonl")
-    
+
     # Print first 3 examples
-    print("\n" + "="*80)
+    print("\n" + "=" * 80)
     print("SAMPLE QUESTIONS:")
-    print("="*80)
-    
+    print("=" * 80)
+
     for i, q in enumerate(benchmark[:3], 1):
         print(f"\n{i}. [{q['category']}] {q['query']}")
         print(f"   Type: {q['expected_query_type']}")
         print(f"   Facts: {', '.join(q['golden_answer_facts'][:3])}...")
         print(f"   Difficulty: {q['difficulty']}")
-    
-    print("\n" + "="*80)
+
+    print("\n" + "=" * 80)
     print("USAGE:")
-    print("="*80)
+    print("=" * 80)
     print("""
 # Evaluate your RAG system:
 python evaluate_with_amanibench.py \\

@@ -2,6 +2,7 @@
 AmaniQuery API Routers
 Modular endpoints for the AmaniQuery API
 """
+
 from Module4_NiruAPI.routers.query_router import router as query_router
 from Module4_NiruAPI.routers.chat_router import router as chat_router
 from Module4_NiruAPI.routers.admin_router import router as admin_router
@@ -15,15 +16,15 @@ from Module4_NiruAPI.routers.websocket_router import router as websocket_router
 from Module4_NiruAPI.routers.notification_router import router as notification_router
 
 __all__ = [
-    'query_router',
-    'chat_router',
-    'admin_router',
-    'research_router',
-    'sms_router',
-    'alignment_router',
-    'monitoring_router',
-    'hybrid_rag_router',
-    'news_router',
-    'websocket_router',
-    'notification_router',
+    "query_router",
+    "chat_router",
+    "admin_router",
+    "research_router",
+    "sms_router",
+    "alignment_router",
+    "monitoring_router",
+    "hybrid_rag_router",
+    "news_router",
+    "websocket_router",
+    "notification_router",
 ]

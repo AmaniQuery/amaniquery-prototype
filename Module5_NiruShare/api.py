@@ -1,6 +1,7 @@
 """
 Sharing API endpoints
 """
+
 import sys
 from pathlib import Path
 import os
@@ -44,7 +45,9 @@ def get_current_user_id(request: Request) -> str:
         raise HTTPException(status_code=401, detail="Session token required")
 
     try:
-        payload = jwt.decode(session_token, os.getenv("JWT_SECRET_KEY"), algorithms=["HS256"])
+        payload = jwt.decode(
+            session_token, os.getenv("JWT_SECRET_KEY"), algorithms=["HS256"]
+        )
         user_id = payload.get("user_id")
         if not user_id:
             raise HTTPException(status_code=401, detail="Invalid token: no user_id")
@@ -59,12 +62,12 @@ def get_current_user_id(request: Request) -> str:
 async def format_for_platform(request: FormatRequest):
     """
     Format a response for specific social media platform
-    
+
     **Supported platforms:**
     - `twitter`: 280 chars (or thread)
     - `linkedin`: Professional format (3000 char limit)
     - `facebook`: Engaging format
-    
+
     **Example:**
     ```json
     {
@@ -84,18 +87,19 @@ async def format_for_platform(request: FormatRequest):
             include_hashtags=request.include_hashtags,
             style=request.style,
         )
-        
+
         return FormatResponse(
             platform=formatted.get("platform", request.platform),
             content=formatted.get("content", ""),
             character_count=formatted.get("character_count"),
             hashtags=formatted.get("hashtags", []),
             metadata={
-                k: v for k, v in formatted.items()
+                k: v
+                for k, v in formatted.items()
                 if k not in ["platform", "content", "character_count", "hashtags"]
-            }
+            },
         )
-        
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -106,7 +110,7 @@ async def format_for_platform(request: FormatRequest):
 async def generate_share_link(request: ShareLinkRequest):
     """
     Generate platform-specific share link
-    
+
     **Example:**
     ```json
     {
@@ -125,29 +129,29 @@ async def generate_share_link(request: ShareLinkRequest):
             content = str(content[0]) if content[0] else ""
         else:
             content = str(content) if content else ""
-        
+
         if not content:
             raise ValueError("Content cannot be empty")
-        
+
         share_url = share_service.generate_share_link(
             platform=request.platform,
             formatted_content=content,
             url=request.url,
         )
-        
+
         # Add platform-specific instructions
         instructions = {
             "twitter": "Click to open Twitter with pre-filled text. You can edit before posting.",
             "linkedin": "Click to open LinkedIn sharing dialog. Paste your formatted content.",
             "facebook": "Click to open Facebook sharing dialog. Paste your formatted content.",
         }
-        
+
         return ShareLinkResponse(
             platform=request.platform,
             share_url=share_url,
             instructions=instructions.get(request.platform.lower()),
         )
-        
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -158,9 +162,9 @@ async def generate_share_link(request: ShareLinkRequest):
 async def preview_all_platforms(request: PreviewRequest):
     """
     Preview formatted posts for all platforms
-    
+
     Returns formatted versions for Twitter, LinkedIn, and Facebook
-    
+
     **Example:**
     ```json
     {
@@ -177,13 +181,15 @@ async def preview_all_platforms(request: PreviewRequest):
             query=request.query,
             style=request.style,
         )
-        
+
         return PreviewResponse(platforms=previews)
-        
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error generating previews: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error generating previews: {str(e)}"
+        )
 
 
 @router.get("/platforms")
@@ -200,7 +206,9 @@ async def get_post_stats(formatted_post: dict):
         stats = share_service.get_platform_stats(formatted_post)
         return stats
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error calculating stats: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error calculating stats: {str(e)}"
+        )
 
 
 @router.post("/post", response_model=PostResponse)
@@ -234,7 +242,7 @@ async def post_to_platform(request: PostRequest, req: Request):
         if not token_data or not token_data.get("access_token"):
             raise HTTPException(
                 status_code=401,
-                detail=f"Not authenticated with {request.platform}. Please complete authentication first."
+                detail=f"Not authenticated with {request.platform}. Please complete authentication first.",
             )
 
         # Validate token before use
@@ -244,7 +252,7 @@ async def post_to_platform(request: PostRequest, req: Request):
                 token_manager.delete_token(user_id, request.platform)
                 raise HTTPException(
                     status_code=401,
-                    detail=f"Authentication expired for {request.platform}. Please re-authenticate."
+                    detail=f"Authentication expired for {request.platform}. Please re-authenticate.",
                 )
 
         access_token = token_data["access_token"]
@@ -266,37 +274,41 @@ async def post_to_platform(request: PostRequest, req: Request):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error posting to platform: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error posting to platform: {str(e)}"
+        )
 
 
 @router.post("/auth", response_model=AuthResponse)
 async def authenticate_platform(request: AuthRequest, req: Request):
     """
     Initiate OAuth authentication flow for a platform
-    
+
     **Supported platforms:** twitter, linkedin, facebook
-    
+
     **Example:**
     ```json
     {
       "platform": "linkedin"
     }
     ```
-    
+
     Returns authentication URL to redirect user to for OAuth consent.
     """
     try:
         user_id = get_current_user_id(req)
-        
+
         result = share_service.get_auth_url(request.platform)
-        
+
         # If platform is Twitter and code_verifier is returned, store it securely
         if request.platform == "twitter" and result.get("code_verifier"):
             code_verifier = result.pop("code_verifier")  # Remove from response
-            token_manager.store_oauth_state(user_id, request.platform, {"code_verifier": code_verifier})
-        
+            token_manager.store_oauth_state(
+                user_id, request.platform, {"code_verifier": code_verifier}
+            )
+
         return AuthResponse(**result)
-        
+
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
@@ -332,7 +344,7 @@ async def check_auth_status(request: AuthRequest, req: Request):
                     platform=request.platform,
                     status="authenticated",
                     message="Authenticated and token is valid",
-                    user_info=token_data.get("user_info", {})
+                    user_info=token_data.get("user_info", {}),
                 )
             else:
                 # Try to refresh token
@@ -341,7 +353,7 @@ async def check_auth_status(request: AuthRequest, req: Request):
                         platform=request.platform,
                         status="authenticated",
                         message="Token refreshed successfully",
-                        user_info=token_data.get("user_info", {})
+                        user_info=token_data.get("user_info", {}),
                     )
                 else:
                     # Token invalid and couldn't refresh
@@ -349,26 +361,28 @@ async def check_auth_status(request: AuthRequest, req: Request):
                     return AuthResponse(
                         platform=request.platform,
                         status="not_authenticated",
-                        message="Authentication expired and could not be refreshed"
+                        message="Authentication expired and could not be refreshed",
                     )
 
         return AuthResponse(
             platform=request.platform,
             status="not_authenticated",
-            message="Not authenticated with this platform"
+            message="Not authenticated with this platform",
         )
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error checking auth status: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error checking auth status: {str(e)}"
+        )
 
 
 @router.post("/generate-image", response_model=ImageGenerationResponse)
 async def generate_image(request: ImageGenerationRequest):
     """
     Generate an image from text content
-    
+
     **Example:**
     ```json
     {
@@ -399,7 +413,7 @@ async def generate_image(request: ImageGenerationRequest):
 async def generate_image_from_post(request: ImageGenerationFromPostRequest):
     """
     Generate an image from formatted post content
-    
+
     **Example:**
     ```json
     {
@@ -459,7 +473,9 @@ async def handle_auth_callback(request: AuthCallbackRequest, req: Request):
         elif request.platform == "twitter":
             token_result = await exchange_twitter_code(request.code, user_id)
         else:
-            raise HTTPException(status_code=400, detail=f"Unsupported platform: {request.platform}")
+            raise HTTPException(
+                status_code=400, detail=f"Unsupported platform: {request.platform}"
+            )
 
         if token_result.get("access_token"):
             # Store access token securely
@@ -482,26 +498,34 @@ async def handle_auth_callback(request: AuthCallbackRequest, req: Request):
                     platform=request.platform,
                     status="authenticated",
                     message="Successfully authenticated",
-                    user_info=token_result.get("user_info")
+                    user_info=token_result.get("user_info"),
                 )
             else:
-                raise HTTPException(status_code=500, detail="Failed to store access token")
+                raise HTTPException(
+                    status_code=500, detail="Failed to store access token"
+                )
         else:
             raise HTTPException(status_code=400, detail="Failed to obtain access token")
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error handling auth callback: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Error handling auth callback: {str(e)}"
+        )
 
 
 async def exchange_linkedin_code(code: str) -> Dict:
     """Exchange LinkedIn authorization code for access token"""
     client_id = os.getenv("LINKEDIN_CLIENT_ID")
     client_secret = os.getenv("LINKEDIN_CLIENT_SECRET")
-    redirect_uri = os.getenv("LINKEDIN_REDIRECT_URI", "http://localhost:8000/share/auth/callback")
-    
+    redirect_uri = os.getenv(
+        "LINKEDIN_REDIRECT_URI", "http://localhost:8000/share/auth/callback"
+    )
+
     if not client_id or not client_secret:
-        raise HTTPException(status_code=500, detail="LinkedIn API credentials not configured")
-    
+        raise HTTPException(
+            status_code=500, detail="LinkedIn API credentials not configured"
+        )
+
     url = "https://www.linkedin.com/oauth/v2/accessToken"
     data = {
         "grant_type": "authorization_code",
@@ -510,17 +534,19 @@ async def exchange_linkedin_code(code: str) -> Dict:
         "client_id": client_id,
         "client_secret": client_secret,
     }
-    
+
     response = requests.post(url, data=data)
     response.raise_for_status()
-    
+
     token_data = response.json()
     access_token = token_data.get("access_token")
-    
+
     # Get user info
     headers = {"Authorization": f"Bearer {access_token}"}
-    user_response = requests.get("https://api.linkedin.com/v2/people/~", headers=headers)
-    
+    user_response = requests.get(
+        "https://api.linkedin.com/v2/people/~", headers=headers
+    )
+
     user_info = None
     if user_response.status_code == 200:
         user_data = user_response.json()
@@ -528,7 +554,7 @@ async def exchange_linkedin_code(code: str) -> Dict:
             "id": user_data.get("id"),
             "name": f"{user_data.get('localizedFirstName', '')} {user_data.get('localizedLastName', '')}".strip(),
         }
-    
+
     return {
         "access_token": access_token,
         "user_info": user_info,
@@ -539,11 +565,15 @@ async def exchange_facebook_code(code: str) -> Dict:
     """Exchange Facebook authorization code for access token"""
     app_id = os.getenv("FACEBOOK_APP_ID")
     app_secret = os.getenv("FACEBOOK_APP_SECRET")
-    redirect_uri = os.getenv("FACEBOOK_REDIRECT_URI", "http://localhost:8000/share/auth/callback")
-    
+    redirect_uri = os.getenv(
+        "FACEBOOK_REDIRECT_URI", "http://localhost:8000/share/auth/callback"
+    )
+
     if not app_id or not app_secret:
-        raise HTTPException(status_code=500, detail="Facebook API credentials not configured")
-    
+        raise HTTPException(
+            status_code=500, detail="Facebook API credentials not configured"
+        )
+
     url = "https://graph.facebook.com/v18.0/oauth/access_token"
     params = {
         "client_id": app_id,
@@ -551,16 +581,18 @@ async def exchange_facebook_code(code: str) -> Dict:
         "client_secret": app_secret,
         "code": code,
     }
-    
+
     response = requests.get(url, params=params)
     response.raise_for_status()
-    
+
     token_data = response.json()
     access_token = token_data.get("access_token")
-    
+
     # Get user info
-    user_response = requests.get(f"https://graph.facebook.com/me?access_token={access_token}")
-    
+    user_response = requests.get(
+        f"https://graph.facebook.com/me?access_token={access_token}"
+    )
+
     user_info = None
     if user_response.status_code == 200:
         user_data = user_response.json()
@@ -568,7 +600,7 @@ async def exchange_facebook_code(code: str) -> Dict:
             "id": user_data.get("id"),
             "name": user_data.get("name"),
         }
-    
+
     return {
         "access_token": access_token,
         "user_info": user_info,
@@ -579,21 +611,29 @@ async def exchange_twitter_code(code: str, user_id: str) -> Dict:
     """Exchange Twitter/X authorization code for access token"""
     client_id = os.getenv("TWITTER_CLIENT_ID")
     client_secret = os.getenv("TWITTER_CLIENT_SECRET")
-    redirect_uri = os.getenv("TWITTER_REDIRECT_URI", "http://localhost:8000/share/auth/callback")
+    redirect_uri = os.getenv(
+        "TWITTER_REDIRECT_URI", "http://localhost:8000/share/auth/callback"
+    )
 
     if not client_id or not client_secret:
-        raise HTTPException(status_code=500, detail="Twitter API credentials not configured")
+        raise HTTPException(
+            status_code=500, detail="Twitter API credentials not configured"
+        )
 
     # Retrieve code_verifier from secure storage
     oauth_state = token_manager.get_oauth_state(user_id, "twitter")
-    
+
     if not oauth_state or not oauth_state.get("code_verifier"):
-        raise HTTPException(status_code=400, detail="Code verifier not found. Please restart authentication.")
+        raise HTTPException(
+            status_code=400,
+            detail="Code verifier not found. Please restart authentication.",
+        )
 
     code_verifier = oauth_state["code_verifier"]
 
     # Create Basic Auth header
     import base64
+
     auth_string = f"{client_id}:{client_secret}"
     auth_header = base64.b64encode(auth_string.encode()).decode()
 
@@ -610,20 +650,22 @@ async def exchange_twitter_code(code: str, user_id: str) -> Dict:
     }
 
     response = requests.post(
-        "https://api.twitter.com/2/oauth2/token",
-        headers=headers,
-        data=data
+        "https://api.twitter.com/2/oauth2/token", headers=headers, data=data
     )
 
     if response.status_code != 200:
-        raise HTTPException(status_code=400, detail=f"Twitter token exchange failed: {response.text}")
+        raise HTTPException(
+            status_code=400, detail=f"Twitter token exchange failed: {response.text}"
+        )
 
     token_data = response.json()
     access_token = token_data.get("access_token")
     refresh_token = token_data.get("refresh_token")
 
     if not access_token:
-        raise HTTPException(status_code=400, detail="No access token received from Twitter")
+        raise HTTPException(
+            status_code=400, detail="No access token received from Twitter"
+        )
 
     # Delete the code_verifier after successful exchange
     token_manager.delete_oauth_state(user_id, "twitter")
@@ -633,7 +675,7 @@ async def exchange_twitter_code(code: str, user_id: str) -> Dict:
     user_response = requests.get(
         "https://api.twitter.com/2/users/me",
         headers=headers,
-        params={"user.fields": "id,name,username,profile_image_url"}
+        params={"user.fields": "id,name,username,profile_image_url"},
     )
 
     user_info = None

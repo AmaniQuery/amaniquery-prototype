@@ -1,6 +1,7 @@
 """
 Research Router - Research and report generation endpoints for AmaniQuery
 """
+
 import json
 import asyncio
 import os
@@ -21,14 +22,17 @@ reports_router = APIRouter(prefix="/reports", tags=["Reports"])
 # DEPENDENCIES - State container to avoid global variable issues
 # =============================================================================
 
+
 class ResearchRouterState:
     """State container for research router dependencies"""
+
     agentic_research_module = None
     research_module = None
     report_generator = None
     cache_manager = None
     chat_manager = None
     research_bundle_service = None
+
 
 _state = ResearchRouterState()
 
@@ -41,7 +45,7 @@ def get_research_module():
         return _state.research_module
     raise HTTPException(
         status_code=503,
-        detail="Research module not available. Ensure API keys are configured."
+        detail="Research module not available. Ensure API keys are configured.",
     )
 
 
@@ -50,7 +54,7 @@ def get_report_generator():
     if _state.report_generator is None:
         raise HTTPException(
             status_code=503,
-            detail="Report generator not available. Ensure GEMINI_API_KEY is configured."
+            detail="Report generator not available. Ensure GEMINI_API_KEY is configured.",
         )
     return _state.report_generator
 
@@ -59,32 +63,30 @@ def save_query_to_chat(session_id: str, query: str, result: Dict):
     """Helper function to save query and response to chat database"""
     if _state.chat_manager is None or not session_id:
         return
-    
+
     try:
         session = _state.chat_manager.get_session(session_id)
         if not session:
             return
-        
+
         chat_result = {
             "answer": result.get("analysis", result.get("summary", str(result))),
             "sources": result.get("sources", []),
             "retrieved_chunks": result.get("chunks_used", 0),
-            "model_used": result.get("model_used", "gemini")
+            "model_used": result.get("model_used", "gemini"),
         }
-        
+
         _state.chat_manager.add_message(
-            session_id=session_id,
-            content=query,
-            role="user"
+            session_id=session_id, content=query, role="user"
         )
-        
+
         _state.chat_manager.add_message(
             session_id=session_id,
             content=chat_result["answer"],
             role="assistant",
             token_count=chat_result["retrieved_chunks"],
             model_used=chat_result["model_used"],
-            sources=chat_result["sources"]
+            sources=chat_result["sources"],
         )
     except Exception as e:
         logger.warning(f"Failed to save query to chat: {e}")
@@ -94,11 +96,12 @@ def save_query_to_chat(session_id: str, query: str, result: Dict):
 # RESEARCH ENDPOINTS
 # =============================================================================
 
+
 @router.post("/analyze-legal-query")
 async def analyze_legal_query(
     query: str = Form(...),
     context: Optional[str] = Form(None),
-    session_id: Optional[str] = Form(None)
+    session_id: Optional[str] = Form(None),
 ):
     """
     Analyze a legal query about Kenya's laws using Gemini AI
@@ -122,7 +125,9 @@ async def analyze_legal_query(
                 context_data = {"additional_info": context}
 
         # Use async method for agentic module
-        if hasattr(module, 'analyze_legal_query') and asyncio.iscoroutinefunction(module.analyze_legal_query):
+        if hasattr(module, "analyze_legal_query") and asyncio.iscoroutinefunction(
+            module.analyze_legal_query
+        ):
             result = await module.analyze_legal_query(query, context_data)
         else:
             result = module.analyze_legal_query(query, context_data)
@@ -144,8 +149,7 @@ async def analyze_legal_query(
 
 @router.post("/generate-legal-report")
 async def generate_legal_report(
-    analysis_results: str = Form(...),
-    report_focus: str = Form("comprehensive")
+    analysis_results: str = Form(...), report_focus: str = Form("comprehensive")
 ):
     """
     Generate a comprehensive legal report based on query analysis
@@ -181,7 +185,7 @@ async def generate_legal_report(
 async def conduct_legal_research(
     legal_topics: str = Form(...),
     research_questions: str = Form(...),
-    session_id: Optional[str] = Form(None)
+    session_id: Optional[str] = Form(None),
 ):
     """
     Conduct legal research on specific topics related to Kenya's laws
@@ -201,7 +205,10 @@ async def conduct_legal_research(
         questions = json.loads(research_questions)
 
         if not isinstance(topics, list) or not isinstance(questions, list):
-            raise HTTPException(status_code=400, detail="legal_topics and research_questions must be JSON arrays")
+            raise HTTPException(
+                status_code=400,
+                detail="legal_topics and research_questions must be JSON arrays",
+            )
 
         result = module.conduct_legal_research(topics, questions)
 
@@ -225,8 +232,7 @@ async def conduct_legal_research(
 
 @router.post("/generate-pdf-report")
 async def generate_pdf_report(
-    analysis_results: str = Form(...),
-    report_title: str = Form("Legal Research Report")
+    analysis_results: str = Form(...), report_title: str = Form("Legal Research Report")
 ):
     """
     Generate a PDF report from legal analysis results
@@ -236,7 +242,9 @@ async def generate_pdf_report(
     """
     bundle_service = _state.research_bundle_service
     if bundle_service is None:
-        raise HTTPException(status_code=503, detail="Research bundle service not available")
+        raise HTTPException(
+            status_code=503, detail="Research bundle service not available"
+        )
 
     try:
         analysis_data = json.loads(analysis_results)
@@ -267,8 +275,7 @@ async def generate_pdf_report(
 
 @router.post("/generate-word-report")
 async def generate_word_report(
-    analysis_results: str = Form(...),
-    report_title: str = Form("Legal Research Report")
+    analysis_results: str = Form(...), report_title: str = Form("Legal Research Report")
 ):
     """
     Generate a Word document report from legal analysis results
@@ -278,7 +285,9 @@ async def generate_word_report(
     """
     bundle_service = _state.research_bundle_service
     if bundle_service is None:
-        raise HTTPException(status_code=503, detail="Research bundle service not available")
+        raise HTTPException(
+            status_code=503, detail="Research bundle service not available"
+        )
 
     try:
         analysis_data = json.loads(analysis_results)
@@ -310,36 +319,42 @@ async def generate_word_report(
 @router.get("/status")
 async def get_research_status():
     """Get the status of research and report generation capabilities"""
-    module_available = (_state.research_module is not None or
-                        _state.agentic_research_module is not None)
-    
+    module_available = (
+        _state.research_module is not None or _state.agentic_research_module is not None
+    )
+
     return {
         "research_module_available": module_available,
         "agentic_research_available": _state.agentic_research_module is not None,
         "report_generator_available": _state.report_generator is not None,
         "bundle_service_available": _state.research_bundle_service is not None,
         "gemini_api_configured": bool(os.getenv("GEMINI_API_KEY")),
-        "available_endpoints": [
-            "/research/analyze-legal-query",
-            "/research/generate-legal-report",
-            "/research/legal-research",
-            "/research/conduct",
-            "/research/download/{bundle_id}/{format}",
-            "/research/generate-pdf-report",
-            "/research/generate-word-report",
-            "/reports/legal-query",
-            "/reports/legal-research",
-            "/reports/constitutional-law",
-            "/reports/compliance",
-            "/reports/technical-audit",
-            "/reports/impact-assessment"
-        ] if module_available else []
+        "available_endpoints": (
+            [
+                "/research/analyze-legal-query",
+                "/research/generate-legal-report",
+                "/research/legal-research",
+                "/research/conduct",
+                "/research/download/{bundle_id}/{format}",
+                "/research/generate-pdf-report",
+                "/research/generate-word-report",
+                "/reports/legal-query",
+                "/reports/legal-research",
+                "/reports/constitutional-law",
+                "/reports/compliance",
+                "/reports/technical-audit",
+                "/reports/impact-assessment",
+            ]
+            if module_available
+            else []
+        ),
     }
 
 
 # =============================================================================
 # UNIFIED RESEARCH FLOW ENDPOINTS
 # =============================================================================
+
 
 @router.post("/conduct")
 async def conduct_research(
@@ -364,7 +379,9 @@ async def conduct_research(
     """
     bundle_service = _state.research_bundle_service
     if bundle_service is None:
-        raise HTTPException(status_code=503, detail="Research bundle service not available")
+        raise HTTPException(
+            status_code=503, detail="Research bundle service not available"
+        )
 
     try:
         context_data = None
@@ -416,7 +433,9 @@ async def download_research_bundle(bundle_id: str, format: str):
     """
     bundle_service = _state.research_bundle_service
     if bundle_service is None:
-        raise HTTPException(status_code=503, detail="Research bundle service not available")
+        raise HTTPException(
+            status_code=503, detail="Research bundle service not available"
+        )
 
     file_path = bundle_service.get_bundle_download_path(bundle_id, format)
     if file_path is None:
@@ -442,6 +461,7 @@ async def download_research_bundle(bundle_id: str, format: str):
 # =============================================================================
 # REPORT GENERATION ENDPOINTS
 # =============================================================================
+
 
 @reports_router.post("/legal-query")
 async def generate_legal_query_report(query_analysis: str = Form(...)):
@@ -470,8 +490,7 @@ async def generate_legal_query_report(query_analysis: str = Form(...)):
 
 @reports_router.post("/legal-research")
 async def generate_legal_research_report(
-    research_data: str = Form(...),
-    research_findings: str = Form(...)
+    research_data: str = Form(...), research_findings: str = Form(...)
 ):
     """
     Generate a legal research report
@@ -482,7 +501,9 @@ async def generate_legal_research_report(
         research_info = json.loads(research_data)
         findings = json.loads(research_findings)
 
-        result = report_generator.generate_legal_research_report(research_info, findings)
+        result = report_generator.generate_legal_research_report(
+            research_info, findings
+        )
 
         if "error" in result:
             raise HTTPException(status_code=500, detail=result["error"])
@@ -515,7 +536,9 @@ async def generate_constitutional_law_report(constitutional_analysis: str = Form
         return result
 
     except json.JSONDecodeError:
-        raise HTTPException(status_code=400, detail="Invalid JSON in constitutional_analysis")
+        raise HTTPException(
+            status_code=400, detail="Invalid JSON in constitutional_analysis"
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -525,8 +548,7 @@ async def generate_constitutional_law_report(constitutional_analysis: str = Form
 
 @reports_router.post("/compliance")
 async def generate_compliance_report(
-    legal_requirements: str = Form(...),
-    compliance_data: str = Form(...)
+    legal_requirements: str = Form(...), compliance_data: str = Form(...)
 ):
     """
     Generate a legal compliance report
@@ -555,25 +577,24 @@ async def generate_compliance_report(
 
 @reports_router.post("/technical-audit")
 async def generate_technical_audit_report(
-    system_metrics: str = Form(...),
-    performance_data: str = Form(...)
+    system_metrics: str = Form(...), performance_data: str = Form(...)
 ):
     """
     Generate a technical audit report
     """
     report_generator = get_report_generator()
-    
+
     try:
         metrics = json.loads(system_metrics)
         performance = json.loads(performance_data)
-        
+
         result = report_generator.generate_technical_audit_report(metrics, performance)
-        
+
         if "error" in result:
             raise HTTPException(status_code=500, detail=result["error"])
-        
+
         return result
-        
+
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=400, detail=f"Invalid JSON format: {str(e)}")
     except HTTPException:
@@ -585,25 +606,24 @@ async def generate_technical_audit_report(
 
 @reports_router.post("/impact-assessment")
 async def generate_impact_assessment_report(
-    usage_data: str = Form(...),
-    impact_metrics: str = Form(...)
+    usage_data: str = Form(...), impact_metrics: str = Form(...)
 ):
     """
     Generate an impact assessment report
     """
     report_generator = get_report_generator()
-    
+
     try:
         usage = json.loads(usage_data)
         impact = json.loads(impact_metrics)
-        
+
         result = report_generator.generate_impact_assessment_report(usage, impact)
-        
+
         if "error" in result:
             raise HTTPException(status_code=500, detail=result["error"])
-        
+
         return result
-        
+
     except json.JSONDecodeError as e:
         raise HTTPException(status_code=400, detail=f"Invalid JSON format: {str(e)}")
     except HTTPException:

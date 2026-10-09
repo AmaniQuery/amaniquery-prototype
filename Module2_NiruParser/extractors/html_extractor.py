@@ -1,6 +1,7 @@
 """
 HTML Text Extractor using Trafilatura
 """
+
 import trafilatura
 from typing import Dict, Optional
 from loguru import logger
@@ -8,21 +9,21 @@ from loguru import logger
 
 class HTMLExtractor:
     """Extract clean text from HTML using Trafilatura"""
-    
+
     def __init__(self):
         self.config = trafilatura.settings.use_config()
         # Configure for maximum extraction
         self.config.set("DEFAULT", "MIN_EXTRACTED_SIZE", "100")
         self.config.set("DEFAULT", "MIN_OUTPUT_SIZE", "100")
-    
+
     def extract(self, html: str, url: Optional[str] = None) -> Dict[str, str]:
         """
         Extract clean text from HTML
-        
+
         Args:
             html: Raw HTML string
             url: Optional URL for better extraction
-        
+
         Returns:
             Dictionary with extracted fields
         """
@@ -37,9 +38,11 @@ class HTMLExtractor:
                 config=self.config,
                 with_metadata=True,
             )
-            
+
             if not extracted:
-                logger.warning("Trafilatura failed to extract text, trying bare extraction")
+                logger.warning(
+                    "Trafilatura failed to extract text, trying bare extraction"
+                )
                 # Fallback to bare extraction
                 text = trafilatura.extract(
                     html,
@@ -52,10 +55,10 @@ class HTMLExtractor:
                     "author": "",
                     "date": "",
                 }
-            
+
             # Extract metadata
             metadata = trafilatura.metadata.extract_metadata(html, default_url=url)
-            
+
             return {
                 "text": extracted,
                 "title": metadata.title if metadata else "",
@@ -63,7 +66,7 @@ class HTMLExtractor:
                 "date": metadata.date if metadata else "",
                 "description": metadata.description if metadata else "",
             }
-            
+
         except Exception as e:
             logger.error(f"Error extracting HTML: {e}")
             return {
@@ -72,7 +75,7 @@ class HTMLExtractor:
                 "author": "",
                 "date": "",
             }
-    
+
     def extract_from_file(self, file_path: str) -> Dict[str, str]:
         """Extract from HTML file"""
         try:

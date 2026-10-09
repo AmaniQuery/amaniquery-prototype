@@ -7,6 +7,7 @@ Provides:
 - Session-based media management
 - Processing status tracking
 """
+
 import os
 import uuid
 import tempfile
@@ -14,7 +15,15 @@ import mimetypes
 from datetime import datetime
 from typing import Optional, Dict, List, Any, Union
 from pathlib import Path
-from fastapi import APIRouter, HTTPException, Request, File, UploadFile, BackgroundTasks, Query
+from fastapi import (
+    APIRouter,
+    HTTPException,
+    Request,
+    File,
+    UploadFile,
+    BackgroundTasks,
+    Query,
+)
 from fastapi.responses import JSONResponse
 from loguru import logger
 from pydantic import BaseModel
@@ -48,8 +57,10 @@ SUPPORTED_DOCUMENT_TYPES = {".pdf"}
 # REQUEST/RESPONSE MODELS
 # =============================================================================
 
+
 class MediaUploadResponse(BaseModel):
     """Media upload response"""
+
     id: str
     session_id: str
     file_type: str
@@ -61,6 +72,7 @@ class MediaUploadResponse(BaseModel):
 
 class MediaAssetResponse(BaseModel):
     """Media asset response"""
+
     id: str
     session_id: str
     file_type: str
@@ -75,6 +87,7 @@ class MediaAssetResponse(BaseModel):
 
 class MediaSessionResponse(BaseModel):
     """Media session response"""
+
     id: str
     name: Optional[str] = None
     asset_count: int
@@ -84,6 +97,7 @@ class MediaSessionResponse(BaseModel):
 
 class ProcessVideoRequest(BaseModel):
     """Video processing options"""
+
     num_frames: int = 10
     extract_audio: bool = True
     transcribe_audio: bool = True
@@ -91,6 +105,7 @@ class ProcessVideoRequest(BaseModel):
 
 class TranscribeAudioRequest(BaseModel):
     """Audio transcription options"""
+
     language: Optional[str] = None
     context_prompt: Optional[str] = None
 
@@ -99,11 +114,14 @@ class TranscribeAudioRequest(BaseModel):
 # STATE & DEPENDENCIES
 # =============================================================================
 
+
 class RouterState:
     """State container for router dependencies"""
+
     vision_rag_service = None
     multimodal_storage = None
     cloudinary_service = None
+
 
 _state = RouterState()
 
@@ -111,15 +129,23 @@ _state = RouterState()
 def get_storage():
     """Get multimodal storage with lazy initialization"""
     if _state.multimodal_storage is None:
-        logger.warning("Multimodal storage not initialized, attempting lazy initialization")
+        logger.warning(
+            "Multimodal storage not initialized, attempting lazy initialization"
+        )
         try:
-            from Module4_NiruAPI.services.multimodal_storage import create_multimodal_storage
+            from Module4_NiruAPI.services.multimodal_storage import (
+                create_multimodal_storage,
+            )
+
             _state.multimodal_storage = create_multimodal_storage(use_database=True)
             logger.info("Multimodal storage lazily initialized")
         except Exception as e:
             logger.error(f"Failed to initialize multimodal storage: {e}")
             # Fall back to in-memory
-            from Module4_NiruAPI.services.multimodal_storage import InMemoryMultimodalStorage
+            from Module4_NiruAPI.services.multimodal_storage import (
+                InMemoryMultimodalStorage,
+            )
+
             _state.multimodal_storage = InMemoryMultimodalStorage()
     return _state.multimodal_storage
 
@@ -131,6 +157,7 @@ def get_vision_service():
             return None
         try:
             from Module4_NiruAPI.services.vision_rag import VisionRAGService
+
             _state.vision_rag_service = VisionRAGService(
                 enable_video=ENABLE_VIDEO_RAG,
                 enable_audio=ENABLE_AUDIO_RAG,
@@ -157,14 +184,15 @@ def get_current_user_id(request: Request) -> Optional[str]:
 # HELPER FUNCTIONS
 # =============================================================================
 
+
 def detect_file_type(filename: str, content_type: Optional[str] = None) -> str:
     """
     Detect file type from filename and content type
-    
+
     Returns: 'image', 'video', 'audio', 'pdf', or 'unknown'
     """
     ext = Path(filename).suffix.lower()
-    
+
     if ext in SUPPORTED_IMAGE_TYPES:
         return "image"
     elif ext in SUPPORTED_VIDEO_TYPES:
@@ -173,7 +201,7 @@ def detect_file_type(filename: str, content_type: Optional[str] = None) -> str:
         return "audio"
     elif ext in SUPPORTED_DOCUMENT_TYPES:
         return "pdf"
-    
+
     # Fall back to content type
     if content_type:
         if content_type.startswith("image/"):
@@ -184,7 +212,7 @@ def detect_file_type(filename: str, content_type: Optional[str] = None) -> str:
             return "audio"
         elif content_type == "application/pdf":
             return "pdf"
-    
+
     return "unknown"
 
 
@@ -212,23 +240,24 @@ def is_type_enabled(file_type: str) -> bool:
 async def save_upload_file(file: UploadFile, dest_dir: str) -> str:
     """Save uploaded file and return path"""
     os.makedirs(dest_dir, exist_ok=True)
-    
+
     # Generate unique filename
     ext = Path(file.filename).suffix
     unique_name = f"{uuid.uuid4().hex}{ext}"
     file_path = os.path.join(dest_dir, unique_name)
-    
+
     # Save file
     content = await file.read()
     with open(file_path, "wb") as f:
         f.write(content)
-    
+
     return file_path
 
 
 # =============================================================================
 # BACKGROUND TASKS
 # =============================================================================
+
 
 async def process_image_background(
     asset_id: str,
@@ -238,27 +267,33 @@ async def process_image_background(
     """Background task to process and embed image"""
     storage = get_storage()
     vision_service = get_vision_service()
-    
+
     try:
         if not vision_service:
-            storage.update_asset(asset_id, processing_status="failed", processing_error="Vision service unavailable")
+            storage.update_asset(
+                asset_id,
+                processing_status="failed",
+                processing_error="Vision service unavailable",
+            )
             return
-        
+
         # Generate embedding
         embedding = vision_service.vision_embedder.embed_image(file_path)
-        
+
         # Update asset
         storage.update_asset(
             asset_id,
             embedding=embedding.tolist(),
             processing_status="completed",
         )
-        
+
         logger.info(f"Image processed: {asset_id}")
-        
+
     except Exception as e:
         logger.error(f"Error processing image {asset_id}: {e}")
-        storage.update_asset(asset_id, processing_status="failed", processing_error=str(e))
+        storage.update_asset(
+            asset_id, processing_status="failed", processing_error=str(e)
+        )
 
 
 async def process_video_background(
@@ -271,12 +306,16 @@ async def process_video_background(
     """Background task to process video"""
     storage = get_storage()
     vision_service = get_vision_service()
-    
+
     try:
         if not vision_service or not vision_service.video_processor:
-            storage.update_asset(asset_id, processing_status="failed", processing_error="Video processing unavailable")
+            storage.update_asset(
+                asset_id,
+                processing_status="failed",
+                processing_error="Video processing unavailable",
+            )
             return
-        
+
         # Process video
         result = vision_service.process_video(
             video_path=file_path,
@@ -284,7 +323,7 @@ async def process_video_background(
             extract_audio=transcribe,
             transcribe_audio=transcribe,
         )
-        
+
         if not result.get("success"):
             storage.update_asset(
                 asset_id,
@@ -292,7 +331,7 @@ async def process_video_background(
                 processing_error=result.get("error", "Unknown error"),
             )
             return
-        
+
         # Store video frames as child assets
         for frame in result.get("frames", []):
             storage.add_asset(
@@ -306,18 +345,20 @@ async def process_video_background(
                 parent_asset_id=asset_id,
                 metadata=frame.get("metadata"),
             )
-        
+
         # Update main video asset with transcription
         transcription = result.get("transcription")
         if transcription:
             # Generate embedding for transcript
             transcript_embedding = None
             try:
-                transcript_embedding = vision_service.vision_embedder.embed_text(transcription["text"])
+                transcript_embedding = vision_service.vision_embedder.embed_text(
+                    transcription["text"]
+                )
                 transcript_embedding = transcript_embedding.tolist()
             except Exception:
                 pass
-            
+
             storage.update_asset(
                 asset_id,
                 extracted_text=transcription["text"],
@@ -341,12 +382,16 @@ async def process_video_background(
                     "has_transcription": False,
                 },
             )
-        
-        logger.info(f"Video processed: {asset_id} ({len(result.get('frames', []))} frames)")
-        
+
+        logger.info(
+            f"Video processed: {asset_id} ({len(result.get('frames', []))} frames)"
+        )
+
     except Exception as e:
         logger.error(f"Error processing video {asset_id}: {e}")
-        storage.update_asset(asset_id, processing_status="failed", processing_error=str(e))
+        storage.update_asset(
+            asset_id, processing_status="failed", processing_error=str(e)
+        )
 
 
 async def process_audio_background(
@@ -358,15 +403,19 @@ async def process_audio_background(
     """Background task to transcribe audio"""
     storage = get_storage()
     vision_service = get_vision_service()
-    
+
     try:
         if not vision_service or not vision_service.whisper_provider:
-            storage.update_asset(asset_id, processing_status="failed", processing_error="Audio transcription unavailable")
+            storage.update_asset(
+                asset_id,
+                processing_status="failed",
+                processing_error="Audio transcription unavailable",
+            )
             return
-        
+
         # Transcribe and embed
         result = vision_service.embed_audio_transcript(file_path, language=language)
-        
+
         if not result.get("success"):
             storage.update_asset(
                 asset_id,
@@ -374,7 +423,7 @@ async def process_audio_background(
                 processing_error=result.get("error", "Transcription failed"),
             )
             return
-        
+
         # Update asset
         storage.update_asset(
             asset_id,
@@ -388,12 +437,14 @@ async def process_audio_background(
                 "confidence": result.get("confidence"),
             },
         )
-        
+
         logger.info(f"Audio transcribed: {asset_id}")
-        
+
     except Exception as e:
         logger.error(f"Error transcribing audio {asset_id}: {e}")
-        storage.update_asset(asset_id, processing_status="failed", processing_error=str(e))
+        storage.update_asset(
+            asset_id, processing_status="failed", processing_error=str(e)
+        )
 
 
 async def process_pdf_background(
@@ -404,25 +455,31 @@ async def process_pdf_background(
     """Background task to process PDF"""
     storage = get_storage()
     vision_service = get_vision_service()
-    
+
     try:
         if not vision_service:
-            storage.update_asset(asset_id, processing_status="failed", processing_error="Vision service unavailable")
+            storage.update_asset(
+                asset_id,
+                processing_status="failed",
+                processing_error="Vision service unavailable",
+            )
             return
-        
+
         # Extract pages and embed
         from Module4_NiruAPI.services.pdf_page_extractor import PDFPageExtractor
-        
+
         extractor = PDFPageExtractor()
         pages = extractor.extract_pages(file_path)
-        
+
         # Process each page
         page_count = 0
         for page in pages:
             try:
                 # Embed page image
-                embedding = vision_service.vision_embedder.embed_image(page["image_path"])
-                
+                embedding = vision_service.vision_embedder.embed_image(
+                    page["image_path"]
+                )
+
                 storage.add_asset(
                     session_id=session_id,
                     file_type="image",
@@ -439,23 +496,26 @@ async def process_pdf_background(
                 page_count += 1
             except Exception as e:
                 logger.warning(f"Error processing PDF page {page['page_number']}: {e}")
-        
+
         storage.update_asset(
             asset_id,
             processing_status="completed",
             metadata_json={"page_count": page_count},
         )
-        
+
         logger.info(f"PDF processed: {asset_id} ({page_count} pages)")
-        
+
     except Exception as e:
         logger.error(f"Error processing PDF {asset_id}: {e}")
-        storage.update_asset(asset_id, processing_status="failed", processing_error=str(e))
+        storage.update_asset(
+            asset_id, processing_status="failed", processing_error=str(e)
+        )
 
 
 # =============================================================================
 # ENDPOINTS
 # =============================================================================
+
 
 @router.post("/sessions", response_model=MediaSessionResponse)
 async def create_media_session(
@@ -465,7 +525,7 @@ async def create_media_session(
     """Create a new media session"""
     storage = get_storage()
     user_id = get_current_user_id(request)
-    
+
     try:
         session = storage.create_session(user_id=user_id, name=name)
         return MediaSessionResponse(
@@ -484,11 +544,11 @@ async def create_media_session(
 async def get_media_session(session_id: str, request: Request):
     """Get media session details"""
     storage = get_storage()
-    
+
     session = storage.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
-    
+
     return MediaSessionResponse(
         id=session["id"],
         name=session.get("name"),
@@ -502,11 +562,11 @@ async def get_media_session(session_id: str, request: Request):
 async def delete_media_session(session_id: str, request: Request):
     """Delete media session and all assets"""
     storage = get_storage()
-    
+
     success = storage.delete_session(session_id)
     if not success:
         raise HTTPException(status_code=404, detail="Session not found")
-    
+
     return {"message": "Session deleted successfully"}
 
 
@@ -518,9 +578,9 @@ async def list_session_assets(
 ):
     """List all assets in a session"""
     storage = get_storage()
-    
+
     assets = storage.get_session_assets(session_id, file_type=file_type)
-    
+
     return [
         MediaAssetResponse(
             id=a["id"],
@@ -547,56 +607,55 @@ async def upload_media(
 ):
     """
     Upload and process media file (image, PDF, audio, or video)
-    
+
     The file type is auto-detected and routed to the appropriate processor.
     Processing happens in the background - check asset status for completion.
     """
     storage = get_storage()
     user_id = get_current_user_id(request)
-    
+
     # Detect file type
     file_type = detect_file_type(file.filename, file.content_type)
-    
+
     if file_type == "unknown":
         raise HTTPException(
             status_code=400,
-            detail=f"Unsupported file type. Supported: images, PDFs, audio, video"
+            detail=f"Unsupported file type. Supported: images, PDFs, audio, video",
         )
-    
+
     # Check if type is enabled
     if not is_type_enabled(file_type):
         raise HTTPException(
-            status_code=400,
-            detail=f"{file_type.upper()} processing is disabled"
+            status_code=400, detail=f"{file_type.upper()} processing is disabled"
         )
-    
+
     # Check file size
     content = await file.read()
     file_size = len(content)
     max_size = get_max_size_for_type(file_type)
-    
+
     if file_size > max_size:
         raise HTTPException(
             status_code=413,
-            detail=f"File too large. Maximum size for {file_type}: {max_size // (1024*1024)}MB"
+            detail=f"File too large. Maximum size for {file_type}: {max_size // (1024*1024)}MB",
         )
-    
+
     # Create session if needed
     if not session_id:
         session = storage.create_session(user_id=user_id)
         session_id = session["id"]
-    
+
     # Save file
     upload_dir = os.path.join(tempfile.gettempdir(), "amaniquery_uploads", session_id)
     os.makedirs(upload_dir, exist_ok=True)
-    
+
     ext = Path(file.filename).suffix
     unique_name = f"{uuid.uuid4().hex}{ext}"
     file_path = os.path.join(upload_dir, unique_name)
-    
+
     with open(file_path, "wb") as f:
         f.write(content)
-    
+
     # Create asset record
     asset = storage.add_asset(
         session_id=session_id,
@@ -608,9 +667,9 @@ async def upload_media(
         user_id=user_id,
         processing_status="processing",
     )
-    
+
     asset_id = asset["id"]
-    
+
     # Schedule background processing
     if file_type == "image":
         background_tasks.add_task(
@@ -628,7 +687,7 @@ async def upload_media(
         background_tasks.add_task(
             process_pdf_background, asset_id, file_path, session_id
         )
-    
+
     return MediaUploadResponse(
         id=asset_id,
         session_id=session_id,
@@ -644,11 +703,11 @@ async def upload_media(
 async def get_asset(asset_id: str, request: Request):
     """Get asset details and processing status"""
     storage = get_storage()
-    
+
     asset = storage.get_asset(asset_id)
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
-    
+
     return MediaAssetResponse(
         id=asset["id"],
         session_id=asset["session_id"],
@@ -667,11 +726,11 @@ async def get_asset(asset_id: str, request: Request):
 async def delete_asset(asset_id: str, request: Request):
     """Delete an asset"""
     storage = get_storage()
-    
+
     success = storage.delete_asset(asset_id)
     if not success:
         raise HTTPException(status_code=404, detail="Asset not found")
-    
+
     return {"message": "Asset deleted successfully"}
 
 
@@ -683,31 +742,41 @@ async def reprocess_asset(
 ):
     """Reprocess an asset (e.g., after a failed processing)"""
     storage = get_storage()
-    
+
     asset = storage.get_asset(asset_id)
     if not asset:
         raise HTTPException(status_code=404, detail="Asset not found")
-    
+
     file_path = asset.get("file_path")
     if not file_path or not os.path.exists(file_path):
         raise HTTPException(status_code=400, detail="Source file no longer available")
-    
+
     # Reset status
-    storage.update_asset(asset_id, processing_status="processing", processing_error=None)
-    
+    storage.update_asset(
+        asset_id, processing_status="processing", processing_error=None
+    )
+
     # Schedule reprocessing
     file_type = asset["file_type"]
     session_id = asset["session_id"]
-    
+
     if file_type == "image":
-        background_tasks.add_task(process_image_background, asset_id, file_path, session_id)
+        background_tasks.add_task(
+            process_image_background, asset_id, file_path, session_id
+        )
     elif file_type == "video":
-        background_tasks.add_task(process_video_background, asset_id, file_path, session_id)
+        background_tasks.add_task(
+            process_video_background, asset_id, file_path, session_id
+        )
     elif file_type == "audio":
-        background_tasks.add_task(process_audio_background, asset_id, file_path, session_id)
+        background_tasks.add_task(
+            process_audio_background, asset_id, file_path, session_id
+        )
     elif file_type == "pdf":
-        background_tasks.add_task(process_pdf_background, asset_id, file_path, session_id)
-    
+        background_tasks.add_task(
+            process_pdf_background, asset_id, file_path, session_id
+        )
+
     return {"message": "Reprocessing started"}
 
 
@@ -715,22 +784,28 @@ async def reprocess_asset(
 async def media_health():
     """Check media processing health status"""
     vision_service = get_vision_service()
-    
+
     status = {
         "vision_rag_enabled": ENABLE_VISION_RAG,
         "video_rag_enabled": ENABLE_VIDEO_RAG,
         "audio_rag_enabled": ENABLE_AUDIO_RAG,
         "vision_service_available": vision_service is not None,
-        "video_processor_available": vision_service.video_processor is not None if vision_service else False,
-        "audio_transcriber_available": vision_service.whisper_provider is not None if vision_service else False,
+        "video_processor_available": (
+            vision_service.video_processor is not None if vision_service else False
+        ),
+        "audio_transcriber_available": (
+            vision_service.whisper_provider is not None if vision_service else False
+        ),
     }
-    
-    all_healthy = all([
-        status["vision_service_available"] or not ENABLE_VISION_RAG,
-        status["video_processor_available"] or not ENABLE_VIDEO_RAG,
-        status["audio_transcriber_available"] or not ENABLE_AUDIO_RAG,
-    ])
-    
+
+    all_healthy = all(
+        [
+            status["vision_service_available"] or not ENABLE_VISION_RAG,
+            status["video_processor_available"] or not ENABLE_VIDEO_RAG,
+            status["audio_transcriber_available"] or not ENABLE_AUDIO_RAG,
+        ]
+    )
+
     return {
         "status": "healthy" if all_healthy else "degraded",
         "components": status,
@@ -741,7 +816,7 @@ async def media_health():
 async def get_storage_stats(request: Request):
     """Get storage statistics (admin only)"""
     storage = get_storage()
-    
+
     try:
         stats = storage.get_storage_stats()
         return stats
@@ -754,7 +829,7 @@ async def get_storage_stats(request: Request):
 async def trigger_cleanup(request: Request):
     """Trigger cleanup of expired assets (admin only)"""
     storage = get_storage()
-    
+
     try:
         deleted = storage.cleanup_expired()
         return {"message": f"Cleaned up {deleted} expired items"}

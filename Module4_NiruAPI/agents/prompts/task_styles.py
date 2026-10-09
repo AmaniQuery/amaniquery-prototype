@@ -2,6 +2,7 @@
 Task-Aware Style Guidelines for AmaniQ Responses
 Defines response styles per task cluster/group
 """
+
 from typing import Dict
 
 # =============================================================================
@@ -20,9 +21,8 @@ TASK_STYLE_GUIDELINES = {
 - Organize with clear hierarchical structure
 - Include constitutional interpretation principles
 - Cite *Constitution of Kenya 2010* with article numbers
-        """
+        """,
     },
-    
     "Employment Law Queries": {
         "tone": "practical_advisory",
         "structure": "step_by_step",
@@ -34,9 +34,8 @@ TASK_STYLE_GUIDELINES = {
 - Include remedies and dispute resolution mechanisms
 - Reference relevant Labour Relations Act provisions
 - Explain procedures in chronological order
-        """
+        """,
     },
-    
     "Land Disputes & Property Law": {
         "tone": "procedural_clear",
         "structure": "process_oriented",
@@ -48,9 +47,8 @@ TASK_STYLE_GUIDELINES = {
 - Include required documentation
 - Reference relevant tribunal/court jurisdictions
 - Use diagrams or step-by-step flows when helpful
-        """
+        """,
     },
-    
     "Bill Tracking & Parliamentary Process": {
         "tone": "factual_chronological",
         "structure": "timeline_based",
@@ -62,9 +60,8 @@ TASK_STYLE_GUIDELINES = {
 - Mention committee stages and readings
 - Reference specific Bill sections
 - Track amendments and their sponsors
-        """
+        """,
     },
-    
     "Case Law Lookup": {
         "tone": "analytical_judicial",
         "structure": "case_analysis",
@@ -76,21 +73,20 @@ TASK_STYLE_GUIDELINES = {
 - Distinguish or apply precedents
 - Reference judge names when significant
 - Follow Kenyan case citation standards
-        """
+        """,
     },
-    
     "General Legal Research": {
         "tone": "balanced_professional",
         "structure": "comprehensive",
         "citation_format": "mixed_appropriate",
-         "guidelines": """
+        "guidelines": """
 - Use professional but accessible language
 - Cite all sources appropriately
 - Provide balanced analysis
 - Include relevant statutes, cases, and commentary
 - Organize logically with clear sections
 - Adapt detail level to query complexity
-        """
+        """,
     },
 }
 
@@ -106,7 +102,7 @@ DEFAULT_STYLE = {
 - Organize information logically
 - Provide comprehensive but concise answers
 - Include relevant citations and references
-    """
+    """,
 }
 
 
@@ -114,13 +110,14 @@ DEFAULT_STYLE = {
 # HELPER FUNCTIONS
 # =============================================================================
 
+
 def get_style_for_task_group(task_group: str) -> Dict[str, str]:
     """
     Get style guidelines for a specific task group
-    
+
     Args:
         task_group: Task group name from user profile
-    
+
     Returns:
         Style dict with tone, structure, format, guidelines
     """
@@ -130,30 +127,30 @@ def get_style_for_task_group(task_group: str) -> Dict[str, str]:
 def format_style_instructions(user_profile: Dict) -> str:
     """
     Format style instructions based on user profile
-    
+
     Args:
         user_profile: User profile with task_groups and expertise_level
-    
+
     Returns:
         Formatted style instructions for prompt
     """
     task_groups = user_profile.get("task_groups", [])
     expertise_level = user_profile.get("expertise_level", "general")
-    
+
     # Get primary task group (first one)
     primary_task = task_groups[0] if task_groups else None
     style = get_style_for_task_group(primary_task) if primary_task else DEFAULT_STYLE
-    
+
     # Adjust for expertise level
     expertise_notes = {
         "lawyer": "Use technical legal terminology. Assume knowledge of legal principles and procedures.",
         "researcher": "Provide detailed analysis with academic rigor. Include nuances and multiple perspectives.",
         "journalist": "Focus on clarity and accessibility. Highlight public interest angles.",
-        "layperson": "Use plain language. Explain legal concepts clearly without jargon."
+        "layperson": "Use plain language. Explain legal concepts clearly without jargon.",
     }
-    
+
     expertise_note = expertise_notes.get(expertise_level, expertise_notes["layperson"])
-    
+
     return f"""
 **Response Style for {primary_task or 'General Query'}:**
 

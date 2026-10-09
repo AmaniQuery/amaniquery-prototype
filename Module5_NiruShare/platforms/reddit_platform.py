@@ -1,6 +1,7 @@
 """
 Reddit platform plugin
 """
+
 from typing import List, Dict, Optional, Union
 from urllib.parse import quote
 
@@ -10,11 +11,11 @@ from ..formatters.reddit_formatter import RedditFormatter
 
 class RedditPlatform(BasePlatform):
     """Reddit platform handler"""
-    
+
     def __init__(self):
         self.formatter = RedditFormatter()
         super().__init__()
-    
+
     def get_metadata(self) -> PlatformMetadata:
         """Return Reddit platform metadata"""
         return PlatformMetadata(
@@ -28,7 +29,7 @@ class RedditPlatform(BasePlatform):
             requires_auth=True,
             features=["markdown", "links", "images", "comments"],
         )
-    
+
     def format_post(
         self,
         answer: str,
@@ -47,7 +48,7 @@ class RedditPlatform(BasePlatform):
         if style:
             result["style"] = style
         return result
-    
+
     def generate_share_link(
         self,
         content: Union[str, List[str]],
@@ -58,4 +59,3 @@ class RedditPlatform(BasePlatform):
             encoded_url = quote(url)
             return f"https://www.reddit.com/submit?url={encoded_url}"
         return "https://www.reddit.com/submit"
-

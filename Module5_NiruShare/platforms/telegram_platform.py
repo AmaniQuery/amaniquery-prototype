@@ -1,6 +1,7 @@
 """
 Telegram platform plugin
 """
+
 from typing import List, Dict, Optional, Union
 from urllib.parse import quote
 
@@ -10,11 +11,11 @@ from ..formatters.telegram_formatter import TelegramFormatter
 
 class TelegramPlatform(BasePlatform):
     """Telegram platform handler"""
-    
+
     def __init__(self):
         self.formatter = TelegramFormatter()
         super().__init__()
-    
+
     def get_metadata(self) -> PlatformMetadata:
         """Return Telegram platform metadata"""
         return PlatformMetadata(
@@ -28,7 +29,7 @@ class TelegramPlatform(BasePlatform):
             requires_auth=True,
             features=["markdown", "links", "images", "videos", "channels"],
         )
-    
+
     def format_post(
         self,
         answer: str,
@@ -47,7 +48,7 @@ class TelegramPlatform(BasePlatform):
         if style:
             result["style"] = style
         return result
-    
+
     def generate_share_link(
         self,
         content: Union[str, List[str]],
@@ -60,4 +61,3 @@ class TelegramPlatform(BasePlatform):
             encoded_text = quote(text[:100])  # Limit text length
             return f"https://t.me/share/url?url={encoded_url}&text={encoded_text}"
         return "https://t.me/share/url"
-

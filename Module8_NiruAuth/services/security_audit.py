@@ -2,6 +2,7 @@
 Security Audit Logger
 Tracks security events for compliance and threat detection
 """
+
 import json
 import os
 from datetime import datetime
@@ -41,7 +42,13 @@ class SecurityAudit:
         os.makedirs(cls.LOG_DIR, exist_ok=True)
 
     @classmethod
-    def log(cls, event: str, user_id: Optional[str] = None, ip_address: Optional[str] = None, details: Optional[Dict[str, Any]] = None):
+    def log(
+        cls,
+        event: str,
+        user_id: Optional[str] = None,
+        ip_address: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+    ):
         """Log a security event"""
         cls._ensure_log_dir()
         entry = {
@@ -64,17 +71,45 @@ class SecurityAudit:
         cls.log(SecurityEvent.LOGIN_SUCCESS, user_id, ip_address)
 
     @classmethod
-    def login_failure(cls, email: str, ip_address: Optional[str] = None, reason: str = "invalid_password"):
-        cls.log(SecurityEvent.LOGIN_FAILURE, None, ip_address, {"email": email, "reason": reason})
+    def login_failure(
+        cls,
+        email: str,
+        ip_address: Optional[str] = None,
+        reason: str = "invalid_password",
+    ):
+        cls.log(
+            SecurityEvent.LOGIN_FAILURE,
+            None,
+            ip_address,
+            {"email": email, "reason": reason},
+        )
 
     @classmethod
-    def account_locked(cls, user_id: str, ip_address: Optional[str] = None, attempts: int = 0):
-        cls.log(SecurityEvent.ACCOUNT_LOCKED, user_id, ip_address, {"failed_attempts": attempts})
+    def account_locked(
+        cls, user_id: str, ip_address: Optional[str] = None, attempts: int = 0
+    ):
+        cls.log(
+            SecurityEvent.ACCOUNT_LOCKED,
+            user_id,
+            ip_address,
+            {"failed_attempts": attempts},
+        )
 
     @classmethod
-    def rate_limit_exceeded(cls, user_id: Optional[str], ip_address: Optional[str], endpoint: str):
-        cls.log(SecurityEvent.RATE_LIMIT_EXCEEDED, user_id, ip_address, {"endpoint": endpoint})
+    def rate_limit_exceeded(
+        cls, user_id: Optional[str], ip_address: Optional[str], endpoint: str
+    ):
+        cls.log(
+            SecurityEvent.RATE_LIMIT_EXCEEDED,
+            user_id,
+            ip_address,
+            {"endpoint": endpoint},
+        )
 
     @classmethod
-    def suspicious_activity(cls, user_id: Optional[str], ip_address: Optional[str], reason: str):
-        cls.log(SecurityEvent.SUSPICIOUS_ACTIVITY, user_id, ip_address, {"reason": reason})
+    def suspicious_activity(
+        cls, user_id: Optional[str], ip_address: Optional[str], reason: str
+    ):
+        cls.log(
+            SecurityEvent.SUSPICIOUS_ACTIVITY, user_id, ip_address, {"reason": reason}
+        )

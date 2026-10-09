@@ -26,6 +26,7 @@ from .tool_schema import get_tool_schema
 @dataclass
 class ToolEvent:
     """SSE event emitted during tool execution lifecycle."""
+
     event: str  # tool_start | tool_progress | tool_result | tool_error | tool_cached
     tool_name: str
     query: str
@@ -82,18 +83,24 @@ async def stream_execute_tool(
     base_event = {"request_id": request_id, "tool_name": tool_name, "query": query}
 
     # tool_start
-    yield _sse_event("tool_start", {
-        **base_event,
-        "description": _get_tool_description(tool_name, registry),
-    })
+    yield _sse_event(
+        "tool_start",
+        {
+            **base_event,
+            "description": _get_tool_description(tool_name, registry),
+        },
+    )
 
     # Check tool exists
     if tool_name not in registry.list_tools():
-        yield _sse_event("tool_error", {
-            **base_event,
-            "error": f"Unknown tool: {tool_name}",
-            "latency_ms": (time.time() - start) * 1000,
-        })
+        yield _sse_event(
+            "tool_error",
+            {
+                **base_event,
+                "error": f"Unknown tool: {tool_name}",
+                "latency_ms": (time.time() - start) * 1000,
+            },
+        )
         return
 
     # Execute
@@ -108,7 +115,9 @@ async def stream_execute_tool(
             )
         elif hasattr(tool, "invoke"):
             result = await asyncio.wait_for(
-                asyncio.get_event_loop().run_in_executor(None, lambda: tool.invoke(args)),
+                asyncio.get_event_loop().run_in_executor(
+                    None, lambda: tool.invoke(args)
+                ),
                 timeout=timeout,
             )
         else:
@@ -120,26 +129,35 @@ async def stream_execute_tool(
             )
 
         elapsed = (time.time() - start) * 1000
-        yield _sse_event("tool_result", {
-            **base_event,
-            "data": _summarize_result(result),
-            "latency_ms": elapsed,
-        })
+        yield _sse_event(
+            "tool_result",
+            {
+                **base_event,
+                "data": _summarize_result(result),
+                "latency_ms": elapsed,
+            },
+        )
 
     except asyncio.TimeoutError:
         elapsed = (time.time() - start) * 1000
-        yield _sse_event("tool_error", {
-            **base_event,
-            "error": f"Timeout after {timeout}s",
-            "latency_ms": elapsed,
-        })
+        yield _sse_event(
+            "tool_error",
+            {
+                **base_event,
+                "error": f"Timeout after {timeout}s",
+                "latency_ms": elapsed,
+            },
+        )
     except Exception as e:
         elapsed = (time.time() - start) * 1000
-        yield _sse_event("tool_error", {
-            **base_event,
-            "error": str(e),
-            "latency_ms": elapsed,
-        })
+        yield _sse_event(
+            "tool_error",
+            {
+                **base_event,
+                "error": str(e),
+                "latency_ms": elapsed,
+            },
+        )
 
 
 async def stream_execute_parallel(
@@ -159,7 +177,9 @@ async def stream_execute_parallel(
     async def _run_one(tc: Dict[str, Any]):
         tool_name = tc.get("tool_name", tc.get("tool", ""))
         query = tc.get("query", "")
-        async for event in stream_execute_tool(tool_name, query, registry, request_id, timeout):
+        async for event in stream_execute_tool(
+            tool_name, query, registry, request_id, timeout
+        ):
             yield event
 
     tasks = [_run_one(tc) for tc in tool_calls[:max_parallel]]
@@ -177,7 +197,9 @@ def _sse_event(event_type: str, data: Dict[str, Any]) -> str:
 def _summarize_result(result: Any) -> Any:
     """Summarize tool result to avoid sending massive payloads over SSE."""
     if isinstance(result, dict):
-        return {k: v for k, v in result.items() if not isinstance(v, (bytes, bytearray))}
+        return {
+            k: v for k, v in result.items() if not isinstance(v, (bytes, bytearray))
+        }
     if isinstance(result, list) and len(result) > 10:
         return {"count": len(result), "preview": result[:3]}
     return result

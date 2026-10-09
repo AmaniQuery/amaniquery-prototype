@@ -9,6 +9,7 @@ Features:
 - Statement timeout enforcement
 - Async engine support
 """
+
 import os
 import time
 import threading
@@ -25,7 +26,12 @@ from sqlalchemy.exc import SQLAlchemyError, OperationalError
 
 # Async support
 try:
-    from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+    from sqlalchemy.ext.asyncio import (
+        create_async_engine,
+        AsyncSession,
+        async_sessionmaker,
+    )
+
     ASYNC_AVAILABLE = True
 except ImportError:
     ASYNC_AVAILABLE = False
@@ -57,17 +63,22 @@ class EngineConfig:
 
 class EngineGroup:
     """Holds writer + reader engines for a single database URL"""
-    
-    def __init__(self, writer_url: str, reader_urls: Optional[List[str]] = None, config: Optional[EngineConfig] = None):
+
+    def __init__(
+        self,
+        writer_url: str,
+        reader_urls: Optional[List[str]] = None,
+        config: Optional[EngineConfig] = None,
+    ):
         self.config = config or EngineConfig()
         self.writer_url = writer_url
         self.reader_urls = reader_urls or []
-        
+
         self.writer_engine = self._build_engine(writer_url)
         self.writer_session_factory = scoped_session(
             sessionmaker(bind=self.writer_engine, expire_on_commit=False)
         )
-        
+
         self.reader_engines: List[Any] = []
         self.reader_session_factories: List[Any] = []
         for url in self.reader_urls:
@@ -76,17 +87,19 @@ class EngineGroup:
             self.reader_session_factories.append(
                 scoped_session(sessionmaker(bind=eng, expire_on_commit=False))
             )
-        
+
         self._async_writer = None
         self._async_reader = None
         self._round_robin = 0
         self._lock = threading.Lock()
-    
+
     def _build_engine(self, url: str):
         connect_args = {"connect_timeout": self.config.connect_timeout}
         if "neon.tech" in url or "postgresql" in url:
-            connect_args["options"] = f"-c statement_timeout={self.config.statement_timeout_ms}"
-        
+            connect_args["options"] = (
+                f"-c statement_timeout={self.config.statement_timeout_ms}"
+            )
+
         engine = create_engine(
             url,
             poolclass=QueuePool,
@@ -99,7 +112,7 @@ class EngineGroup:
             echo=self.config.echo,
             connect_args=connect_args,
         )
-        
+
         @event.listens_for(engine, "connect")
         def _on_connect(dbapi_connection, connection_record):
             try:
@@ -108,12 +121,12 @@ class EngineGroup:
                 cursor.close()
             except Exception:
                 pass
-        
+
         return engine
-    
+
     def get_writer_session(self) -> Session:
         return self.writer_session_factory()
-    
+
     def get_reader_session(self) -> Session:
         if not self.reader_engines:
             return self.writer_session_factory()
@@ -121,10 +134,12 @@ class EngineGroup:
             idx = self._round_robin % len(self.reader_engines)
             self._round_robin += 1
         return self.reader_session_factories[idx]()
-    
+
     def get_async_writer(self):
         if self._async_writer is None and ASYNC_AVAILABLE:
-            async_url = self.writer_url.replace("postgresql://", "postgresql+asyncpg://")
+            async_url = self.writer_url.replace(
+                "postgresql://", "postgresql+asyncpg://"
+            )
             async_url = async_url.replace("postgres://", "postgresql+asyncpg://")
             self._async_writer = create_async_engine(
                 async_url,
@@ -135,22 +150,24 @@ class EngineGroup:
                 echo=self.config.echo,
             )
         return self._async_writer
-    
+
     def get_reader_metrics(self) -> List[PoolMetrics]:
         metrics = []
         for eng in [self.writer_engine] + self.reader_engines:
             try:
                 pool = eng.pool
-                metrics.append(PoolMetrics(
-                    size=pool.size(),
-                    checked_in=pool.checkedin(),
-                    checked_out=pool.checkedout(),
-                    overflow=pool.overflow(),
-                ))
+                metrics.append(
+                    PoolMetrics(
+                        size=pool.size(),
+                        checked_in=pool.checkedin(),
+                        checked_out=pool.checkedout(),
+                        overflow=pool.overflow(),
+                    )
+                )
             except Exception:
                 pass
         return metrics
-    
+
     def dispose(self):
         try:
             self.writer_engine.dispose()
@@ -169,10 +186,10 @@ class ConnectionPoolManager:
     Single engine per URL eliminates the ~145 separate connection limit.
     Supports read replicas for read/write splitting at 1M+ scale.
     """
-    
+
     _instance = None
     _lock = threading.Lock()
-    
+
     def __new__(cls):
         if cls._instance is None:
             with cls._lock:
@@ -180,7 +197,7 @@ class ConnectionPoolManager:
                     cls._instance = super().__new__(cls)
                     cls._instance._initialized = False
         return cls._instance
-    
+
     def __init__(self):
         if self._initialized:
             return
@@ -188,8 +205,10 @@ class ConnectionPoolManager:
         self._async_engines: Dict[str, Any] = {}
         self._async_factories: Dict[str, Any] = {}
         self._initialized = True
-        logger.info("ConnectionPoolManager initialized (pool_size=100, max_overflow=200)")
-    
+        logger.info(
+            "ConnectionPoolManager initialized (pool_size=100, max_overflow=200)"
+        )
+
     def get_engine_group(
         self,
         database_url: Optional[str] = None,
@@ -198,14 +217,16 @@ class ConnectionPoolManager:
     ) -> EngineGroup:
         """Get or create an engine group for the given writer URL."""
         if database_url is None:
-            database_url = os.getenv("DATABASE_URL", "postgresql://localhost/amaniquery")
-        
+            database_url = os.getenv(
+                "DATABASE_URL", "postgresql://localhost/amaniquery"
+            )
+
         # For Neon, prefer unpooled for direct connections
         if "neon.tech" in database_url and "pooler" in database_url:
             unpooled = os.getenv("DATABASE_URL_UNPOOLED")
             if unpooled:
                 database_url = unpooled
-        
+
         if database_url not in self._groups:
             self._groups[database_url] = EngineGroup(
                 writer_url=database_url,
@@ -217,21 +238,25 @@ class ConnectionPoolManager:
                 f"(pool_size={config.pool_size if config else 100}, "
                 f"readers={len(reader_urls or [])})"
             )
-        
+
         return self._groups[database_url]
-    
+
     def get_async_session_factory(self, database_url: Optional[str] = None):
         """Get or create async session factory for the given URL."""
         if not ASYNC_AVAILABLE:
-            raise RuntimeError("Async SQLAlchemy not available. Install: pip install sqlalchemy[asyncio] asyncpg")
-        
+            raise RuntimeError(
+                "Async SQLAlchemy not available. Install: pip install sqlalchemy[asyncio] asyncpg"
+            )
+
         if database_url is None:
-            database_url = os.getenv("DATABASE_URL", "postgresql://localhost/amaniquery")
-        
+            database_url = os.getenv(
+                "DATABASE_URL", "postgresql://localhost/amaniquery"
+            )
+
         if database_url not in self._async_engines:
             async_url = database_url.replace("postgresql://", "postgresql+asyncpg://")
             async_url = async_url.replace("postgres://", "postgresql+asyncpg://")
-            
+
             engine = create_async_engine(
                 async_url,
                 pool_size=100,
@@ -244,9 +269,9 @@ class ConnectionPoolManager:
             self._async_factories[database_url] = async_sessionmaker(
                 engine, class_=AsyncSession, expire_on_commit=False
             )
-        
+
         return self._async_factories[database_url]
-    
+
     def get_health(self) -> Dict[str, Any]:
         """Aggregate pool health across all engine groups."""
         writer_metrics = []
@@ -256,23 +281,30 @@ class ConnectionPoolManager:
             for m in metrics:
                 if m.size > 0 and m.checked_out > m.size + m.overflow:
                     all_healthy = False
-            writer_metrics.append({
-                "url": url[:60] + "...",
-                "metrics": [{
-                    "size": m.size,
-                    "checked_in": m.checked_in,
-                    "checked_out": m.checked_out,
-                    "overflow": m.overflow,
-                    "utilization_pct": round(m.checked_out / max(m.size, 1) * 100, 1)
-                } for m in metrics],
-            })
-        
+            writer_metrics.append(
+                {
+                    "url": url[:60] + "...",
+                    "metrics": [
+                        {
+                            "size": m.size,
+                            "checked_in": m.checked_in,
+                            "checked_out": m.checked_out,
+                            "overflow": m.overflow,
+                            "utilization_pct": round(
+                                m.checked_out / max(m.size, 1) * 100, 1
+                            ),
+                        }
+                        for m in metrics
+                    ],
+                }
+            )
+
         return {
             "status": "healthy" if all_healthy else "degraded",
             "engine_groups": len(self._groups),
             "writers": writer_metrics,
         }
-    
+
     def dispose_all(self):
         """Dispose all engine groups (call on shutdown)."""
         for group in self._groups.values():

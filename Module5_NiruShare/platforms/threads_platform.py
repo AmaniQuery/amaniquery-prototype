@@ -49,11 +49,13 @@ class ThreadsPlatform(BasePlatform):
         base_url = "https://threads.net/intent/post"
         text_param = content
         if url:
-             text_param += f"\n\n{url}"
+            text_param += f"\n\n{url}"
         params = {"text": text_param}
         return f"{base_url}?{urllib.parse.urlencode(params)}"
 
-    def post_content(self, content: str, media_urls: List[str] = None, auth_token: str = None) -> Dict:
+    def post_content(
+        self, content: str, media_urls: List[str] = None, auth_token: str = None
+    ) -> Dict:
         access_token = auth_token or os.getenv("THREADS_ACCESS_TOKEN")
         user_id = os.getenv("THREADS_USER_ID")
         if not access_token or not user_id:
@@ -79,7 +81,10 @@ class ThreadsPlatform(BasePlatform):
             create_resp.raise_for_status()
             container_id = create_resp.json().get("id")
             if not container_id:
-                return {"success": False, "error": "Failed to get container ID from Threads API"}
+                return {
+                    "success": False,
+                    "error": "Failed to get container ID from Threads API",
+                }
 
             # Step 2: Publish the container
             publish_url = f"https://graph.threads.net/v1.0/{user_id}/threads_publish"

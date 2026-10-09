@@ -1,4 +1,3 @@
-
 """
 Populate vector database from processed data
 
@@ -8,6 +7,7 @@ Enhanced with:
 - Progress tracking and resumption
 - Memory-efficient streaming for large datasets
 """
+
 import sys
 import json
 import time
@@ -62,14 +62,16 @@ def clear_progress():
         PROGRESS_FILE.unlink()
 
 
-def stream_chunks_from_file(jsonl_file: Path, batch_size: int = DEFAULT_BATCH_SIZE) -> Generator[List[Dict], None, None]:
+def stream_chunks_from_file(
+    jsonl_file: Path, batch_size: int = DEFAULT_BATCH_SIZE
+) -> Generator[List[Dict], None, None]:
     """
     Stream chunks from JSONL file in batches (memory efficient)
-    
+
     Args:
         jsonl_file: Path to JSONL file
         batch_size: Number of chunks per batch
-        
+
     Yields:
         List of chunks (batch)
     """
@@ -80,14 +82,14 @@ def stream_chunks_from_file(jsonl_file: Path, batch_size: int = DEFAULT_BATCH_SI
                 try:
                     chunk = json.loads(line)
                     batch.append(chunk)
-                    
+
                     if len(batch) >= batch_size:
                         yield batch
                         batch = []
                 except json.JSONDecodeError as e:
                     logger.warning(f"Skipping invalid JSON line: {e}")
                     continue
-    
+
     # Yield remaining chunks
     if batch:
         yield batch
@@ -98,28 +100,30 @@ def add_batch_with_retry(
     store_name: str,
     chunks: List[Dict],
     namespace: str,
-    max_retries: int = MAX_RETRIES
+    max_retries: int = MAX_RETRIES,
 ) -> bool:
     """
     Add a batch of chunks with retry logic and exponential backoff
-    
+
     Args:
         vector_store: VectorStore instance
         store_name: Name of the store (for logging)
         chunks: List of chunks to add
         namespace: Namespace for the chunks
         max_retries: Maximum number of retry attempts
-        
+
     Returns:
         True if successful, False otherwise
     """
     for attempt in range(max_retries):
         try:
-            vector_store.add_documents(chunks, batch_size=len(chunks), namespace=namespace)
+            vector_store.add_documents(
+                chunks, batch_size=len(chunks), namespace=namespace
+            )
             return True
         except Exception as e:
             delay = RETRY_DELAY_BASE ** (attempt + 1)
-            
+
             if attempt < max_retries - 1:
                 logger.warning(
                     f"Batch failed for {store_name} (attempt {attempt + 1}/{max_retries}): {e}. "
@@ -127,9 +131,11 @@ def add_batch_with_retry(
                 )
                 time.sleep(delay)
             else:
-                logger.error(f"Batch failed for {store_name} after {max_retries} attempts: {e}")
+                logger.error(
+                    f"Batch failed for {store_name} after {max_retries} attempts: {e}"
+                )
                 return False
-    
+
     return False
 
 
@@ -142,42 +148,56 @@ def determine_namespace(category: str, publication_date: str) -> str:
             if isinstance(publication_date, str):
                 # Handle various date formats
                 import re
-                year_match = re.search(r'(\d{4})', publication_date)
+
+                year_match = re.search(r"(\d{4})", publication_date)
                 if year_match:
                     year = int(year_match.group(1))
                     if year < 2010:
                         return "historical"
         except (ValueError, AttributeError):
             pass
-    
+
     # Map categories to namespaces
     category_lower = category.lower()
-    
+
     # Kenya Law namespace
-    if any(keyword in category_lower for keyword in [
-        'kenyan law', 'case law', 'kenya gazette', 'kenya law blog', 
-        'cause lists', 'constitution', 'act', 'legislation', 'judgment'
-    ]):
+    if any(
+        keyword in category_lower
+        for keyword in [
+            "kenyan law",
+            "case law",
+            "kenya gazette",
+            "kenya law blog",
+            "cause lists",
+            "constitution",
+            "act",
+            "legislation",
+            "judgment",
+        ]
+    ):
         return "kenya_law"
-    
+
     # Kenya News namespace
-    elif any(keyword in category_lower for keyword in [
-        'kenyan news', 'news'
-    ]):
+    elif any(keyword in category_lower for keyword in ["kenyan news", "news"]):
         return "kenya_news"
-    
+
     # Kenya Parliament namespace
-    elif any(keyword in category_lower for keyword in [
-        'parliament', 'parliamentary record', 'bill', 'hansard', 'budget'
-    ]):
+    elif any(
+        keyword in category_lower
+        for keyword in [
+            "parliament",
+            "parliamentary record",
+            "bill",
+            "hansard",
+            "budget",
+        ]
+    ):
         return "kenya_parliament"
-    
+
     # Global Trends namespace (default for global content)
-    elif any(keyword in category_lower for keyword in [
-        'global trend'
-    ]):
+    elif any(keyword in category_lower for keyword in ["global trend"]):
         return "global_trends"
-    
+
     # Default fallback
     else:
         return "kenya_law"  # Default to kenya_law for legal content
@@ -187,11 +207,11 @@ def main(
     batch_size: int = DEFAULT_BATCH_SIZE,
     resume: bool = True,
     fresh_start: bool = False,
-    backends: Optional[List[str]] = None
+    backends: Optional[List[str]] = None,
 ):
     """
     Load processed data into vector databases and Elasticsearch
-    
+
     Args:
         batch_size: Number of chunks per batch (default: 50)
         resume: Resume from last progress (default: True)
@@ -204,17 +224,19 @@ def main(
     print(f"   Batch size: {batch_size}")
     print(f"   Max retries: {MAX_RETRIES}")
     print(f"   Resume mode: {resume}")
-    
+
     # Handle progress
     if fresh_start:
         clear_progress()
         print("   [INIT] Starting fresh (progress cleared)")
-    
+
     progress = load_progress() if resume else {"completed_files": [], "last_run": None}
-    
+
     if progress.get("last_run"):
         print(f"   [INFO] Resuming from: {progress['last_run']}")
-        print(f"   [INFO] Previously completed: {len(progress['completed_files'])} files")
+        print(
+            f"   [INFO] Previously completed: {len(progress['completed_files'])} files"
+        )
 
     # Initialize config manager (optional - fallback to env vars)
     config_manager = None
@@ -236,7 +258,7 @@ def main(
             upstash_store = VectorStore(
                 backend="upstash",
                 collection_name="amaniquery_docs",
-                config_manager=config_manager
+                config_manager=config_manager,
             )
             vector_stores.append(("Upstash", upstash_store))
             print("[OK] Upstash Vector Store initialized")
@@ -250,7 +272,7 @@ def main(
             qdrant_store = VectorStore(
                 backend="qdrant",
                 collection_name="amaniquery_docs",
-                config_manager=config_manager
+                config_manager=config_manager,
             )
             vector_stores.append(("QDrant", qdrant_store))
             print("[OK] QDrant Vector Store initialized")
@@ -264,7 +286,7 @@ def main(
             chromadb_store = VectorStore(
                 backend="chromadb",
                 collection_name="amaniquery_docs",
-                config_manager=config_manager
+                config_manager=config_manager,
             )
             vector_stores.append(("ChromaDB", chromadb_store))
             print("[OK] ChromaDB Vector Store initialized")
@@ -311,7 +333,7 @@ def main(
         "failed_batches": 0,
         "files_processed": 0,
         "stores_updated": {name: 0 for name, _ in vector_stores},
-        "namespaces": {}
+        "namespaces": {},
     }
 
     # Process each file
@@ -327,18 +349,18 @@ def main(
         for batch_chunks in stream_chunks_from_file(jsonl_file, batch_size):
             if not batch_chunks:
                 continue
-            
+
             # Group batch by namespace
             namespace_batches = {}
             for chunk in batch_chunks:
                 category = chunk.get("category", "Unknown")
                 publication_date = chunk.get("publication_date", "")
                 ns = determine_namespace(category, publication_date)
-                
+
                 if ns not in namespace_batches:
                     namespace_batches[ns] = []
                 namespace_batches[ns].append(chunk)
-                
+
                 # Track namespace stats
                 if ns not in stats["namespaces"]:
                     stats["namespaces"][ns] = 0
@@ -352,18 +374,20 @@ def main(
                         store_name=store_name,
                         chunks=ns_chunks,
                         namespace=namespace,
-                        max_retries=MAX_RETRIES
+                        max_retries=MAX_RETRIES,
                     )
-                    
+
                     if success:
                         stats["stores_updated"][store_name] += len(ns_chunks)
-                        
+
                         # Also index in elasticsearch if available
                         if vector_store.es_client is not None:
                             try:
                                 for chunk in ns_chunks:
                                     doc_id = str(chunk.get("chunk_id"))
-                                    vector_store.index_document(doc_id, chunk, namespace=namespace)
+                                    vector_store.index_document(
+                                        doc_id, chunk, namespace=namespace
+                                    )
                             except Exception as e:
                                 logger.warning(f"Elasticsearch indexing error: {e}")
                     else:
@@ -413,15 +437,17 @@ def main(
             print(f"   Collection: {store_stats.get('collection_name', 'unknown')}")
             print(f"   Total chunks: {store_stats.get('total_chunks', 'unknown')}")
 
-            if store_stats.get('elasticsearch_enabled'):
-                es_docs = store_stats.get('elasticsearch_docs', 0)
+            if store_stats.get("elasticsearch_enabled"):
+                es_docs = store_stats.get("elasticsearch_docs", 0)
                 print(f"   Elasticsearch docs: {es_docs}")
 
-            if store_stats.get('persist_directory'):
+            if store_stats.get("persist_directory"):
                 print(f"   Storage location: {store_stats['persist_directory']}")
 
-            if store_stats.get('sample_categories'):
-                print(f"   Categories: {', '.join(store_stats['sample_categories'].keys())}")
+            if store_stats.get("sample_categories"):
+                print(
+                    f"   Categories: {', '.join(store_stats['sample_categories'].keys())}"
+                )
 
         except Exception as e:
             print(f"   [ERROR] Could not get stats: {e}")
@@ -445,46 +471,48 @@ def main(
         "failed_batches": stats["failed_batches"],
         "files_processed": stats["files_processed"],
         "stores_updated": stats["stores_updated"],
-        "namespaces": stats["namespaces"]
+        "namespaces": stats["namespaces"],
     }
 
 
 if __name__ == "__main__":
     import argparse
-    
-    parser = argparse.ArgumentParser(description="Populate vector databases from processed data")
+
+    parser = argparse.ArgumentParser(
+        description="Populate vector databases from processed data"
+    )
     parser.add_argument(
-        "--batch-size", "-b",
+        "--batch-size",
+        "-b",
         type=int,
         default=DEFAULT_BATCH_SIZE,
-        help=f"Number of chunks per batch (default: {DEFAULT_BATCH_SIZE})"
+        help=f"Number of chunks per batch (default: {DEFAULT_BATCH_SIZE})",
     )
     parser.add_argument(
-        "--fresh", "-f",
+        "--fresh",
+        "-f",
         action="store_true",
-        help="Start fresh (clear progress from previous runs)"
+        help="Start fresh (clear progress from previous runs)",
     )
     parser.add_argument(
-        "--no-resume",
-        action="store_true",
-        help="Don't resume from previous progress"
+        "--no-resume", action="store_true", help="Don't resume from previous progress"
     )
     parser.add_argument(
         "--backends",
         nargs="+",
         choices=["upstash", "qdrant", "chromadb"],
-        help="Specific backends to populate (default: all available)"
+        help="Specific backends to populate (default: all available)",
     )
-    
+
     args = parser.parse_args()
-    
+
     result = main(
         batch_size=args.batch_size,
         resume=not args.no_resume,
         fresh_start=args.fresh,
-        backends=args.backends
+        backends=args.backends,
     )
-    
+
     # Exit with appropriate code
     if result and result.get("status") == "completed":
         sys.exit(0)

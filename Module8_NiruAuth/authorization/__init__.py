@@ -1,6 +1,7 @@
 """
 Authorization System
 """
+
 from .permission_checker import PermissionChecker
 from .role_manager import RoleManager
 from .user_role_manager import UserRoleManager
@@ -14,4 +15,3 @@ __all__ = [
     "ScopeValidator",
     "PolicyEngine",
 ]
-

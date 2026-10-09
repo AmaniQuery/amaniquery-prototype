@@ -1,6 +1,7 @@
 """
 NiruSpider Settings
 """
+
 import os
 from pathlib import Path
 
@@ -33,7 +34,14 @@ HTTPCACHE_DIR = "httpcache"
 
 # Retry settings - Enhanced for reliability
 RETRY_TIMES = 5  # Increased from 3 for better resilience
-RETRY_HTTP_CODES = [500, 502, 503, 504, 408, 429]  # 403 removed — Forbidden means blocked, retrying is futile
+RETRY_HTTP_CODES = [
+    500,
+    502,
+    503,
+    504,
+    408,
+    429,
+]  # 403 removed — Forbidden means blocked, retrying is futile
 RETRY_PRIORITY_ADJUST = -1  # Lower priority for retries
 
 # Download timeout

@@ -1,6 +1,7 @@
 from typing import List, Dict, Optional
 from .base_formatter import BaseFormatter
 
+
 class ThreadsFormatter(BaseFormatter):
     def __init__(self):
         super().__init__()
@@ -15,13 +16,19 @@ class ThreadsFormatter(BaseFormatter):
         include_hashtags: bool = True,
     ) -> Dict:
         limit = self.MAX_CHARS
-        posts = self._format_thread_structure(answer, sources, query, limit, include_hashtags)
+        posts = self._format_thread_structure(
+            answer, sources, query, limit, include_hashtags
+        )
 
         return {
             "platform": "threads",
             "content": posts,
             "character_count": sum(len(p) for p in posts),
-            "hashtags": self._generate_hashtags(answer, sources, max_tags=5) if include_hashtags else [],
+            "hashtags": (
+                self._generate_hashtags(answer, sources, max_tags=5)
+                if include_hashtags
+                else []
+            ),
         }
 
     def _format_thread_structure(
@@ -57,7 +64,11 @@ class ThreadsFormatter(BaseFormatter):
             posts.append(current_post.strip())
 
         sources_text = self._format_sources_plain(sources)
-        hashtags = self._generate_hashtags(answer, sources, max_tags=3) if include_hashtags else []
+        hashtags = (
+            self._generate_hashtags(answer, sources, max_tags=3)
+            if include_hashtags
+            else []
+        )
         tags_text = " ".join(hashtags)
 
         footer = ""

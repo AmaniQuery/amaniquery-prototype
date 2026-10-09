@@ -9,4 +9,3 @@ from .embedding_diffusion import EmbeddingDiffusionModel
 from .diffusion_trainer import DiffusionTrainer
 
 __all__ = ["TextDiffusionModel", "EmbeddingDiffusionModel", "DiffusionTrainer"]
-

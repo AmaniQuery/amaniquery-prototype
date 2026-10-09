@@ -14,6 +14,7 @@ from typing import Dict, List, Any
 # Configuration
 API_BASE_URL = "http://localhost:8000"
 
+
 def check_research_status():
     """Check if research capabilities are available"""
     try:
@@ -21,9 +22,15 @@ def check_research_status():
         if response.status_code == 200:
             status = response.json()
             print("Research Status:")
-            print(f"  Research Module: {'Available' if status['research_module_available'] else 'Not Available'}")
-            print(f"  Report Generator: {'Available' if status['report_generator_available'] else 'Not Available'}")
-            print(f"  Gemini API: {'Configured' if status['gemini_api_configured'] else 'Not Configured'}")
+            print(
+                f"  Research Module: {'Available' if status['research_module_available'] else 'Not Available'}"
+            )
+            print(
+                f"  Report Generator: {'Available' if status['report_generator_available'] else 'Not Available'}"
+            )
+            print(
+                f"  Gemini API: {'Configured' if status['gemini_api_configured'] else 'Not Configured'}"
+            )
             return status
         else:
             print(f"Failed to check status: {response.status_code}")
@@ -31,6 +38,7 @@ def check_research_status():
     except Exception as e:
         print(f"Error checking research status: {e}")
         return None
+
 
 def analyze_legal_query():
     """Analyze a legal query about Kenya's laws"""
@@ -45,16 +53,13 @@ def analyze_legal_query():
         "location": "Nairobi",
         "business_type": "retail_shop",
         "issue_type": "tax_compliance",
-        "urgency": "medium"
+        "urgency": "medium",
     }
 
     try:
         response = requests.post(
             f"{API_BASE_URL}/research/analyze-legal-query",
-            data={
-                "query": legal_query,
-                "context": json.dumps(context)
-            }
+            data={"query": legal_query, "context": json.dumps(context)},
         )
 
         if response.status_code == 200:
@@ -78,15 +83,17 @@ def analyze_legal_query():
         return None
 
 
-def generate_legal_report(analysis_results: Dict[str, Any], focus: str = "comprehensive"):
+def generate_legal_report(
+    analysis_results: Dict[str, Any], focus: str = "comprehensive"
+):
     """Generate a comprehensive legal report based on query analysis"""
     try:
         response = requests.post(
             f"{API_BASE_URL}/research/generate-legal-report",
             data={
                 "analysis_results": json.dumps(analysis_results),
-                "report_focus": focus
-            }
+                "report_focus": focus,
+            },
         )
 
         if response.status_code == 200:
@@ -123,7 +130,7 @@ def conduct_legal_research():
         "Consumer protection rights under Kenyan law",
         "Employment law obligations for employers in Kenya",
         "Environmental regulations for businesses in Kenya",
-        "Intellectual property protection in Kenya"
+        "Intellectual property protection in Kenya",
     ]
 
     research_questions = [
@@ -131,7 +138,7 @@ def conduct_legal_research():
         "How does the Consumer Protection Act affect retail businesses in Kenya?",
         "What employment law obligations must employers comply with in Kenya?",
         "What environmental regulations apply to businesses operating in Kenya?",
-        "How can businesses protect their intellectual property in Kenya?"
+        "How can businesses protect their intellectual property in Kenya?",
     ]
 
     try:
@@ -139,8 +146,8 @@ def conduct_legal_research():
             f"{API_BASE_URL}/research/legal-research",
             data={
                 "legal_topics": json.dumps(legal_topics),
-                "research_questions": json.dumps(research_questions)
-            }
+                "research_questions": json.dumps(research_questions),
+            },
         )
 
         if response.status_code == 200:
@@ -168,30 +175,61 @@ def generate_legal_query_report():
     sample_analysis = {
         "query_interpretation": {
             "main_question": "Tax compliance rights and obligations for small business owner",
-            "key_concerns": ["Tax obligations", "Rights as taxpayer", "Need for professional help"],
-            "legal_areas": ["Tax law", "Administrative law", "Business regulation"]
+            "key_concerns": [
+                "Tax obligations",
+                "Rights as taxpayer",
+                "Need for professional help",
+            ],
+            "legal_areas": ["Tax law", "Administrative law", "Business regulation"],
         },
         "applicable_laws": {
-            "primary_laws": ["Income Tax Act (Cap 470)", "Value Added Tax Act (Cap 476)", "Tax Procedures Act"],
+            "primary_laws": [
+                "Income Tax Act (Cap 470)",
+                "Value Added Tax Act (Cap 476)",
+                "Tax Procedures Act",
+            ],
             "regulatory_bodies": ["Kenya Revenue Authority (KRA)"],
-            "relevant_case_law": ["Recent High Court decisions on taxpayer rights"]
+            "relevant_case_law": ["Recent High Court decisions on taxpayer rights"],
         },
         "legal_analysis": {
-            "tax_obligations": ["File tax returns annually", "Pay taxes on time", "Maintain proper records"],
-            "taxpayer_rights": ["Right to fair administration", "Right to appeal decisions", "Right to information"],
-            "compliance_requirements": ["Register for taxes", "Obtain PIN number", "Keep financial records"]
+            "tax_obligations": [
+                "File tax returns annually",
+                "Pay taxes on time",
+                "Maintain proper records",
+            ],
+            "taxpayer_rights": [
+                "Right to fair administration",
+                "Right to appeal decisions",
+                "Right to information",
+            ],
+            "compliance_requirements": [
+                "Register for taxes",
+                "Obtain PIN number",
+                "Keep financial records",
+            ],
         },
         "practical_guidance": {
-            "immediate_steps": ["Register with KRA if not done", "Obtain KRA PIN", "Organize financial records"],
-            "recommended_actions": ["Consider consulting a tax professional", "Set up proper accounting system"],
-            "resources": ["KRA website", "Tax help desks", "Business registration offices"]
-        }
+            "immediate_steps": [
+                "Register with KRA if not done",
+                "Obtain KRA PIN",
+                "Organize financial records",
+            ],
+            "recommended_actions": [
+                "Consider consulting a tax professional",
+                "Set up proper accounting system",
+            ],
+            "resources": [
+                "KRA website",
+                "Tax help desks",
+                "Business registration offices",
+            ],
+        },
     }
 
     try:
         response = requests.post(
             f"{API_BASE_URL}/reports/legal-query",
-            data={"query_analysis": json.dumps(sample_analysis)}
+            data={"query_analysis": json.dumps(sample_analysis)},
         )
 
         if response.status_code == 200:
@@ -212,15 +250,18 @@ def generate_legal_query_report():
         print(f"Error generating legal query report: {e}")
         return None
 
-def generate_pdf_report(analysis_results: Dict[str, Any], report_title: str = "Legal Research Report"):
+
+def generate_pdf_report(
+    analysis_results: Dict[str, Any], report_title: str = "Legal Research Report"
+):
     """Generate a PDF report from legal analysis results"""
     try:
         response = requests.post(
             f"{API_BASE_URL}/research/generate-pdf-report",
             data={
                 "analysis_results": json.dumps(analysis_results),
-                "report_title": report_title
-            }
+                "report_title": report_title,
+            },
         )
 
         if response.status_code == 200:
@@ -239,15 +280,17 @@ def generate_pdf_report(analysis_results: Dict[str, Any], report_title: str = "L
         return False
 
 
-def generate_word_report(analysis_results: Dict[str, Any], report_title: str = "Legal Research Report"):
+def generate_word_report(
+    analysis_results: Dict[str, Any], report_title: str = "Legal Research Report"
+):
     """Generate a Word document report from legal analysis results"""
     try:
         response = requests.post(
             f"{API_BASE_URL}/research/generate-word-report",
             data={
                 "analysis_results": json.dumps(analysis_results),
-                "report_title": report_title
-            }
+                "report_title": report_title,
+            },
         )
 
         if response.status_code == 200:
@@ -258,7 +301,9 @@ def generate_word_report(analysis_results: Dict[str, Any], report_title: str = "
             print(f"Word Document Generated and saved as {filename}")
             return True
         else:
-            print(f"Word document generation failed: {response.status_code} - {response.text}")
+            print(
+                f"Word document generation failed: {response.status_code} - {response.text}"
+            )
             return False
 
     except Exception as e:
@@ -277,34 +322,51 @@ def generate_word_report(analysis_results: Dict[str, Any], report_title: str = "
             "Enable constitutional compliance analysis for legislation and policies",
             "Facilitate public understanding of legal and parliamentary processes",
             "Support legal professionals with AI-powered research tools",
-            "Promote transparency and accountability in Kenya's legal system"
+            "Promote transparency and accountability in Kenya's legal system",
         ],
         "modules": [
             {
                 "name": "NiruSpider",
                 "purpose": "Comprehensive crawling of Kenyan legal sources",
-                "key_sources": ["Kenya Law Reports", "Parliament of Kenya", "Kenya Gazette", "Court judgments"]
+                "key_sources": [
+                    "Kenya Law Reports",
+                    "Parliament of Kenya",
+                    "Kenya Gazette",
+                    "Court judgments",
+                ],
             },
             {
                 "name": "NiruParser",
                 "purpose": "Legal document processing and AI analysis",
-                "capabilities": ["PDF text extraction", "Legal text chunking", "Constitutional alignment analysis"]
+                "capabilities": [
+                    "PDF text extraction",
+                    "Legal text chunking",
+                    "Constitutional alignment analysis",
+                ],
             },
             {
                 "name": "NiruDB",
                 "purpose": "Intelligent legal knowledge base",
-                "features": ["Vector embeddings", "Semantic search", "Legal precedent linking"]
+                "features": [
+                    "Vector embeddings",
+                    "Semantic search",
+                    "Legal precedent linking",
+                ],
             },
             {
                 "name": "NiruAPI",
                 "purpose": "AI-powered legal intelligence API",
-                "models": ["Moonshot AI", "Gemini AI", "Constitutional analysis engine"]
+                "models": [
+                    "Moonshot AI",
+                    "Gemini AI",
+                    "Constitutional analysis engine",
+                ],
             },
             {
                 "name": "NiruShare",
                 "purpose": "Legal knowledge dissemination",
-                "channels": ["Social media", "SMS alerts", "Public dashboards"]
-            }
+                "channels": ["Social media", "SMS alerts", "Public dashboards"],
+            },
         ],
         "key_features": [
             "Constitutional alignment checking for bills and policies",
@@ -314,7 +376,7 @@ def generate_word_report(analysis_results: Dict[str, Any], report_title: str = "
             "Multi-language support (English, Swahili)",
             "Source-cited answers with legal references",
             "Public legal education tools",
-            "Legal compliance monitoring dashboard"
+            "Legal compliance monitoring dashboard",
         ],
         "impact_areas": [
             "Legal Access & Transparency",
@@ -323,7 +385,7 @@ def generate_word_report(analysis_results: Dict[str, Any], report_title: str = "
             "Policy Compliance Monitoring",
             "Public Legal Literacy",
             "Judicial Efficiency",
-            "Anti-Corruption Tools"
+            "Anti-Corruption Tools",
         ],
         "metrics": {
             "legal_documents_indexed": 50000,
@@ -332,11 +394,20 @@ def generate_word_report(analysis_results: Dict[str, Any], report_title: str = "
             "active_legal_professionals": 1500,
             "citizen_users": 25000,
             "average_response_time": "0.8s",
-            "constitutional_alignment_accuracy": "94%"
+            "constitutional_alignment_accuracy": "94%",
         },
         "technologies": [
-            "Python", "FastAPI", "Next.js", "ChromaDB", "Moonshot AI", "Gemini AI",
-            "Scrapy", "PostgreSQL", "Docker", "Kubernetes", "SMS Gateway"
+            "Python",
+            "FastAPI",
+            "Next.js",
+            "ChromaDB",
+            "Moonshot AI",
+            "Gemini AI",
+            "Scrapy",
+            "PostgreSQL",
+            "Docker",
+            "Kubernetes",
+            "SMS Gateway",
         ],
         "competitive_advantages": [
             "Specialized focus on Kenyan legal system",
@@ -344,14 +415,14 @@ def generate_word_report(analysis_results: Dict[str, Any], report_title: str = "
             "Multi-channel access (web, mobile, SMS)",
             "Real-time legal monitoring",
             "Local language support",
-            "Integration with official legal sources"
-        ]
+            "Integration with official legal sources",
+        ],
     }
 
     try:
         response = requests.post(
             f"{API_BASE_URL}/reports/project-overview",
-            data={"project_data": json.dumps(project_data)}
+            data={"project_data": json.dumps(project_data)},
         )
 
         if response.status_code == 200:
@@ -372,6 +443,7 @@ def generate_word_report(analysis_results: Dict[str, Any], report_title: str = "
         print(f"Error generating project overview report: {e}")
         return None
 
+
 def main():
     """Main demonstration function"""
     print("AmaniQuery Legal Research & Report Generation Demo")
@@ -380,7 +452,9 @@ def main():
     # Check if research capabilities are available
     status = check_research_status()
     if not status or not status.get("research_module_available"):
-        print("❌ Research module not available. Please ensure GEMINI_API_KEY is configured.")
+        print(
+            "❌ Research module not available. Please ensure GEMINI_API_KEY is configured."
+        )
         return
 
     print("\n✅ Research capabilities are available!")
@@ -432,13 +506,16 @@ def main():
 
     print()
     print("🎉 Legal research and report generation completed!")
-    print("Check the generated files for detailed legal analysis, reports, and documents:")
+    print(
+        "Check the generated files for detailed legal analysis, reports, and documents:"
+    )
     print("- legal_query_analysis.json (raw analysis data)")
     print("- legal_report_comprehensive.json (structured report)")
     print("- legal_research_results.json (research findings)")
     print("- legal_query_report.json (formatted report)")
     print("- Tax_Compliance_Legal_Analysis.pdf (PDF document)")
     print("- Tax_Compliance_Legal_Analysis.docx (Word document)")
+
 
 if __name__ == "__main__":
     main()

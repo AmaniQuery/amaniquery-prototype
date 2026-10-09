@@ -1,4 +1,3 @@
 """
 Mock providers for testing
 """
-

@@ -1,41 +1,46 @@
 import os
 from sentence_transformers import SentenceTransformer
 from transformers import (
-    AutoTokenizer, 
-    AutoModelForSequenceClassification, 
-    AutoModelForTokenClassification, 
-    AutoModelForSeq2SeqLM
+    AutoTokenizer,
+    AutoModelForSequenceClassification,
+    AutoModelForTokenClassification,
+    AutoModelForSeq2SeqLM,
 )
+
 
 def download_models():
     print("🚀 Starting model download for AmaniQuery & NiruSense...")
-    
+
     # 1. Base Embedding Model (Legacy/Default)
     base_embedding = os.getenv("EMBEDDING_MODEL", "all-MiniLM-L6-v2")
     print(f"📥 Downloading base embedding model: {base_embedding}...")
     SentenceTransformer(base_embedding)
-    
+
     # 2. NiruSense Embedding Model
     niru_embedding = "nomic-ai/nomic-embed-text-v1.5"
     print(f"📥 Downloading NiruSense embedding model: {niru_embedding}...")
     SentenceTransformer(niru_embedding, trust_remote_code=True)
-    
+
     # 3. Lightweight Voice Model (small, HF-friendly)
     voice_model = "facebook/wav2vec2-base"  # 95MB vs 7B for Kimi-Audio
     print(f"📥 Downloading voice model: {voice_model}...")
     try:
         from transformers import AutoProcessor, AutoModel
+
         AutoProcessor.from_pretrained(voice_model, trust_remote_code=True)
         AutoModel.from_pretrained(voice_model, trust_remote_code=True)
         print(f"✅ Successfully downloaded {voice_model}")
     except Exception as e:
         print(f"⚠️  Voice model download skipped (optional): {e}")
         # Non-critical - continue with other models
-    
+
     # 4. NiruSense NLP Models
     models = [
         # Language ID
-        ("papluca/xlm-roberta-base-language-detection", AutoModelForSequenceClassification),
+        (
+            "papluca/xlm-roberta-base-language-detection",
+            AutoModelForSequenceClassification,
+        ),
         # Slang Decoder
         ("google/flan-t5-base", AutoModelForSeq2SeqLM),
         # Topic & Bias (Same model)
@@ -43,13 +48,19 @@ def download_models():
         # NER
         ("Davlan/xlm-roberta-base-ner-hrl", AutoModelForTokenClassification),
         # Sentiment
-        ("lxyuan/distilbert-base-multilingual-cased-sentiments-student", AutoModelForSequenceClassification),
+        (
+            "lxyuan/distilbert-base-multilingual-cased-sentiments-student",
+            AutoModelForSequenceClassification,
+        ),
         # Emotion
-        ("j-hartmann/emotion-english-distilroberta-base", AutoModelForSequenceClassification),
+        (
+            "j-hartmann/emotion-english-distilroberta-base",
+            AutoModelForSequenceClassification,
+        ),
         # Summarizer
         ("google/mt5-small", AutoModelForSeq2SeqLM),
     ]
-    
+
     for model_name, model_class in models:
         print(f"📥 Downloading model: {model_name}...")
         try:
@@ -68,6 +79,7 @@ def download_models():
             pass
 
     print("✨ All models downloaded successfully!")
+
 
 if __name__ == "__main__":
     download_models()

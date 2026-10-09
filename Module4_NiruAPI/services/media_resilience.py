@@ -7,6 +7,7 @@ Extends patterns from Module6_NiruVoice/resilience for media processing with:
 - Graceful fallbacks (text-only RAG when vision fails)
 - Health monitoring
 """
+
 import asyncio
 import time
 from enum import Enum
@@ -22,22 +23,24 @@ T = TypeVar("T")
 # CIRCUIT BREAKER
 # =============================================================================
 
+
 class CircuitState(Enum):
     """Circuit breaker states"""
-    CLOSED = "closed"      # Normal operation
-    OPEN = "open"          # Failing, rejecting requests
+
+    CLOSED = "closed"  # Normal operation
+    OPEN = "open"  # Failing, rejecting requests
     HALF_OPEN = "half_open"  # Testing recovery
 
 
 @dataclass
 class MediaCircuitBreakerConfig:
     """Configuration for media processing circuit breaker"""
-    
+
     failure_threshold: int = 5  # Failures before opening
     success_threshold: int = 2  # Successes in half-open to close
     timeout_seconds: float = 60.0  # Time before half-open
     half_open_max_calls: int = 3  # Max calls in half-open
-    
+
     def __post_init__(self):
         if self.failure_threshold < 1:
             raise ValueError("failure_threshold must be at least 1")
@@ -48,10 +51,10 @@ class MediaCircuitBreakerConfig:
 class MediaCircuitBreaker:
     """
     Circuit breaker for media processing operations
-    
+
     Prevents cascading failures when external services (Cohere, Gemini, etc.) are down.
     """
-    
+
     def __init__(
         self,
         name: str,
@@ -61,16 +64,16 @@ class MediaCircuitBreaker:
         self.config = config or MediaCircuitBreakerConfig()
         self.state = CircuitState.CLOSED
         self._lock = Lock()
-        
+
         # Counters
         self.failure_count = 0
         self.success_count = 0
         self.half_open_calls = 0
-        
+
         # Timing
         self.last_failure_time: Optional[float] = None
         self.last_state_change: float = time.time()
-        
+
         # Stats
         self.stats = {
             "total_calls": 0,
@@ -79,48 +82,52 @@ class MediaCircuitBreaker:
             "rejected_calls": 0,
             "state_transitions": 0,
         }
-        
-        logger.info(f"Circuit breaker '{name}' initialized (threshold={config.failure_threshold if config else 5})")
-    
+
+        logger.info(
+            f"Circuit breaker '{name}' initialized (threshold={config.failure_threshold if config else 5})"
+        )
+
     @property
     def is_closed(self) -> bool:
         return self.state == CircuitState.CLOSED
-    
+
     @property
     def is_open(self) -> bool:
         return self.state == CircuitState.OPEN
-    
+
     def _should_attempt_reset(self) -> bool:
         """Check if timeout has elapsed to attempt reset"""
         if self.last_failure_time is None:
             return True
         return time.time() - self.last_failure_time >= self.config.timeout_seconds
-    
+
     def _transition_to(self, new_state: CircuitState, reason: str = ""):
         """Transition to new state"""
         with self._lock:
             if self.state == new_state:
                 return
-            
+
             old_state = self.state
             self.state = new_state
             self.last_state_change = time.time()
             self.stats["state_transitions"] += 1
-            
+
             # Reset counters on transition
             if new_state == CircuitState.HALF_OPEN:
                 self.half_open_calls = 0
                 self.success_count = 0
             elif new_state == CircuitState.CLOSED:
                 self.failure_count = 0
-            
-            logger.info(f"Circuit '{self.name}': {old_state.value} -> {new_state.value} ({reason})")
-    
+
+            logger.info(
+                f"Circuit '{self.name}': {old_state.value} -> {new_state.value} ({reason})"
+            )
+
     def record_success(self):
         """Record successful call"""
         with self._lock:
             self.stats["successful_calls"] += 1
-            
+
             if self.state == CircuitState.HALF_OPEN:
                 self.success_count += 1
                 if self.success_count >= self.config.success_threshold:
@@ -128,27 +135,30 @@ class MediaCircuitBreaker:
             elif self.state == CircuitState.CLOSED:
                 # Reset failure count on success
                 self.failure_count = 0
-    
+
     def record_failure(self, error: Optional[Exception] = None):
         """Record failed call"""
         with self._lock:
             self.stats["failed_calls"] += 1
             self.last_failure_time = time.time()
-            
+
             if self.state == CircuitState.HALF_OPEN:
                 self._transition_to(CircuitState.OPEN, "failed during recovery test")
             elif self.state == CircuitState.CLOSED:
                 self.failure_count += 1
                 if self.failure_count >= self.config.failure_threshold:
-                    self._transition_to(CircuitState.OPEN, f"threshold exceeded ({self.failure_count} failures)")
-    
+                    self._transition_to(
+                        CircuitState.OPEN,
+                        f"threshold exceeded ({self.failure_count} failures)",
+                    )
+
     def can_execute(self) -> bool:
         """Check if request can be executed"""
         self.stats["total_calls"] += 1
-        
+
         if self.state == CircuitState.CLOSED:
             return True
-        
+
         if self.state == CircuitState.OPEN:
             if self._should_attempt_reset():
                 self._transition_to(CircuitState.HALF_OPEN, "timeout elapsed")
@@ -157,7 +167,7 @@ class MediaCircuitBreaker:
             else:
                 self.stats["rejected_calls"] += 1
                 return False
-        
+
         if self.state == CircuitState.HALF_OPEN:
             if self.half_open_calls < self.config.half_open_max_calls:
                 self.half_open_calls += 1
@@ -165,9 +175,9 @@ class MediaCircuitBreaker:
             else:
                 self.stats["rejected_calls"] += 1
                 return False
-        
+
         return False
-    
+
     async def execute_async(
         self,
         func: Callable[..., T],
@@ -177,24 +187,28 @@ class MediaCircuitBreaker:
     ) -> T:
         """
         Execute async function with circuit breaker protection
-        
+
         Args:
             func: Async function to execute
             fallback: Optional fallback function if circuit is open
             *args, **kwargs: Arguments for func
-            
+
         Returns:
             Result of func or fallback
-            
+
         Raises:
             CircuitOpenError if circuit is open and no fallback
         """
         if not self.can_execute():
             if fallback:
                 logger.warning(f"Circuit '{self.name}' open, using fallback")
-                return await fallback(*args, **kwargs) if asyncio.iscoroutinefunction(fallback) else fallback(*args, **kwargs)
+                return (
+                    await fallback(*args, **kwargs)
+                    if asyncio.iscoroutinefunction(fallback)
+                    else fallback(*args, **kwargs)
+                )
             raise CircuitOpenError(f"Circuit '{self.name}' is open")
-        
+
         try:
             result = await func(*args, **kwargs)
             self.record_success()
@@ -202,7 +216,7 @@ class MediaCircuitBreaker:
         except Exception as e:
             self.record_failure(e)
             raise
-    
+
     def execute(
         self,
         func: Callable[..., T],
@@ -216,7 +230,7 @@ class MediaCircuitBreaker:
                 logger.warning(f"Circuit '{self.name}' open, using fallback")
                 return fallback(*args, **kwargs)
             raise CircuitOpenError(f"Circuit '{self.name}' is open")
-        
+
         try:
             result = func(*args, **kwargs)
             self.record_success()
@@ -224,7 +238,7 @@ class MediaCircuitBreaker:
         except Exception as e:
             self.record_failure(e)
             raise
-    
+
     def get_stats(self) -> Dict:
         """Get circuit breaker statistics"""
         return {
@@ -235,7 +249,7 @@ class MediaCircuitBreaker:
             "time_in_state": time.time() - self.last_state_change,
             **self.stats,
         }
-    
+
     def reset(self):
         """Manually reset circuit breaker"""
         with self._lock:
@@ -248,6 +262,7 @@ class MediaCircuitBreaker:
 
 class CircuitOpenError(Exception):
     """Raised when circuit breaker is open"""
+
     pass
 
 
@@ -255,10 +270,11 @@ class CircuitOpenError(Exception):
 # RETRY HANDLER
 # =============================================================================
 
+
 @dataclass
 class MediaRetryConfig:
     """Configuration for media processing retries"""
-    
+
     max_retries: int = 3
     base_delay: float = 1.0
     max_delay: float = 30.0
@@ -275,7 +291,7 @@ class MediaRetryHandler:
     """
     Retry handler with exponential backoff for media operations
     """
-    
+
     def __init__(self, config: Optional[MediaRetryConfig] = None):
         self.config = config or MediaRetryConfig()
         self.stats = {
@@ -283,22 +299,23 @@ class MediaRetryHandler:
             "successful_retries": 0,
             "failed_operations": 0,
         }
-    
+
     def _calculate_delay(self, attempt: int) -> float:
         """Calculate delay for next retry"""
-        delay = self.config.base_delay * (self.config.exponential_base ** attempt)
+        delay = self.config.base_delay * (self.config.exponential_base**attempt)
         delay = min(delay, self.config.max_delay)
-        
+
         if self.config.jitter:
             import random
-            delay *= (0.5 + random.random())
-        
+
+            delay *= 0.5 + random.random()
+
         return delay
-    
+
     def _should_retry(self, exception: Exception) -> bool:
         """Check if exception is retryable"""
         return isinstance(exception, self.config.retryable_exceptions)
-    
+
     async def execute_async(
         self,
         func: Callable[..., T],
@@ -307,31 +324,33 @@ class MediaRetryHandler:
     ) -> T:
         """Execute async function with retry logic"""
         last_exception = None
-        
+
         for attempt in range(self.config.max_retries + 1):
             self.stats["total_attempts"] += 1
-            
+
             try:
                 result = await func(*args, **kwargs)
                 if attempt > 0:
                     self.stats["successful_retries"] += 1
                     logger.info(f"Operation succeeded after {attempt} retries")
                 return result
-                
+
             except Exception as e:
                 last_exception = e
-                
+
                 if not self._should_retry(e) or attempt >= self.config.max_retries:
                     self.stats["failed_operations"] += 1
                     raise
-                
+
                 delay = self._calculate_delay(attempt)
-                logger.warning(f"Retry {attempt + 1}/{self.config.max_retries} after {delay:.1f}s: {e}")
+                logger.warning(
+                    f"Retry {attempt + 1}/{self.config.max_retries} after {delay:.1f}s: {e}"
+                )
                 await asyncio.sleep(delay)
-        
+
         self.stats["failed_operations"] += 1
         raise last_exception
-    
+
     def execute(
         self,
         func: Callable[..., T],
@@ -340,27 +359,29 @@ class MediaRetryHandler:
     ) -> T:
         """Execute sync function with retry logic"""
         last_exception = None
-        
+
         for attempt in range(self.config.max_retries + 1):
             self.stats["total_attempts"] += 1
-            
+
             try:
                 result = func(*args, **kwargs)
                 if attempt > 0:
                     self.stats["successful_retries"] += 1
                 return result
-                
+
             except Exception as e:
                 last_exception = e
-                
+
                 if not self._should_retry(e) or attempt >= self.config.max_retries:
                     self.stats["failed_operations"] += 1
                     raise
-                
+
                 delay = self._calculate_delay(attempt)
-                logger.warning(f"Retry {attempt + 1}/{self.config.max_retries} after {delay:.1f}s: {e}")
+                logger.warning(
+                    f"Retry {attempt + 1}/{self.config.max_retries} after {delay:.1f}s: {e}"
+                )
                 time.sleep(delay)
-        
+
         self.stats["failed_operations"] += 1
         raise last_exception
 
@@ -369,8 +390,10 @@ class MediaRetryHandler:
 # FALLBACK STRATEGIES
 # =============================================================================
 
+
 class FallbackMode(Enum):
     """Fallback strategy modes"""
+
     SEQUENTIAL = "sequential"  # Try providers in order
     HEALTH_BASED = "health_based"  # Prefer healthy providers
     ROUND_ROBIN = "round_robin"  # Rotate between providers
@@ -379,6 +402,7 @@ class FallbackMode(Enum):
 @dataclass
 class FallbackConfig:
     """Configuration for fallback strategies"""
+
     mode: FallbackMode = FallbackMode.SEQUENTIAL
     max_fallbacks: int = 3
 
@@ -386,13 +410,13 @@ class FallbackConfig:
 class MediaFallbackManager:
     """
     Manages fallback strategies for media processing
-    
+
     When primary processing fails, falls back to:
     1. Alternative embedding model
     2. Text-only RAG (no vision)
     3. Cached results
     """
-    
+
     def __init__(self, config: Optional[FallbackConfig] = None):
         self.config = config or FallbackConfig()
         self.fallback_stats = {
@@ -400,7 +424,7 @@ class MediaFallbackManager:
             "fallbacks_succeeded": 0,
             "fallbacks_exhausted": 0,
         }
-    
+
     async def execute_with_fallback_async(
         self,
         primary: Callable[..., T],
@@ -410,33 +434,41 @@ class MediaFallbackManager:
     ) -> T:
         """
         Execute with fallback chain
-        
+
         Args:
             primary: Primary function to execute
             fallbacks: List of fallback functions
             *args, **kwargs: Arguments for functions
-            
+
         Returns:
             Result from primary or first successful fallback
         """
         # Try primary
         try:
-            return await primary(*args, **kwargs) if asyncio.iscoroutinefunction(primary) else primary(*args, **kwargs)
+            return (
+                await primary(*args, **kwargs)
+                if asyncio.iscoroutinefunction(primary)
+                else primary(*args, **kwargs)
+            )
         except Exception as primary_error:
             logger.warning(f"Primary operation failed: {primary_error}")
             self.fallback_stats["fallbacks_triggered"] += 1
-        
+
         # Try fallbacks
-        for i, fallback in enumerate(fallbacks[:self.config.max_fallbacks]):
+        for i, fallback in enumerate(fallbacks[: self.config.max_fallbacks]):
             try:
                 logger.info(f"Trying fallback {i + 1}/{len(fallbacks)}")
-                result = await fallback(*args, **kwargs) if asyncio.iscoroutinefunction(fallback) else fallback(*args, **kwargs)
+                result = (
+                    await fallback(*args, **kwargs)
+                    if asyncio.iscoroutinefunction(fallback)
+                    else fallback(*args, **kwargs)
+                )
                 self.fallback_stats["fallbacks_succeeded"] += 1
                 return result
             except Exception as fallback_error:
                 logger.warning(f"Fallback {i + 1} failed: {fallback_error}")
                 continue
-        
+
         self.fallback_stats["fallbacks_exhausted"] += 1
         raise RuntimeError("All fallbacks exhausted")
 
@@ -445,13 +477,14 @@ class MediaFallbackManager:
 # RESILIENT MEDIA PROCESSOR
 # =============================================================================
 
+
 class ResilientMediaProcessor:
     """
     Wraps media processing with full resilience support
-    
+
     Combines circuit breaker, retry, and fallback for robust media handling.
     """
-    
+
     def __init__(
         self,
         name: str = "media_processor",
@@ -463,9 +496,9 @@ class ResilientMediaProcessor:
         self.circuit_breaker = MediaCircuitBreaker(name, circuit_config)
         self.retry_handler = MediaRetryHandler(retry_config)
         self.fallback_manager = MediaFallbackManager(fallback_config)
-        
+
         logger.info(f"Resilient media processor '{name}' initialized")
-    
+
     async def process_async(
         self,
         operation: Callable[..., T],
@@ -476,19 +509,24 @@ class ResilientMediaProcessor:
     ) -> T:
         """
         Process with full resilience chain
-        
+
         Order: Circuit Breaker -> Retry -> Fallback
         """
+
         async def operation_with_retry():
             if skip_retry:
-                return await operation(*args, **kwargs) if asyncio.iscoroutinefunction(operation) else operation(*args, **kwargs)
+                return (
+                    await operation(*args, **kwargs)
+                    if asyncio.iscoroutinefunction(operation)
+                    else operation(*args, **kwargs)
+                )
             return await self.retry_handler.execute_async(operation, *args, **kwargs)
-        
+
         return await self.circuit_breaker.execute_async(
             operation_with_retry,
             fallback=fallback,
         )
-    
+
     def get_health_status(self) -> Dict:
         """Get health status of all components"""
         return {
@@ -497,7 +535,7 @@ class ResilientMediaProcessor:
             "retry_handler": self.retry_handler.stats,
             "fallback_manager": self.fallback_manager.fallback_stats,
         }
-    
+
     def reset(self):
         """Reset all components"""
         self.circuit_breaker.reset()

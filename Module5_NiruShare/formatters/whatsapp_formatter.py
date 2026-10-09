@@ -31,8 +31,8 @@ class WhatsAppFormatter(BaseFormatter):
             message_parts.append("\n\n*Sources:*")
             for i, source in enumerate(sources[:3], 1):
                 if isinstance(source, dict):
-                    title = str(source.get('title', '')).strip()
-                    url = str(source.get('url', '')).strip()
+                    title = str(source.get("title", "")).strip()
+                    url = str(source.get("url", "")).strip()
                     if url:
                         message_parts.append(f"\n{i}. {title}\n   {url}")
                     else:

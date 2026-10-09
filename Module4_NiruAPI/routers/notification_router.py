@@ -1,6 +1,7 @@
 """
 Notification Subscription API Router
 """
+
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional
 from pydantic import BaseModel
@@ -15,7 +16,7 @@ sys.path.insert(0, str(project_root))
 from Module3_NiruDB.notification_models import (
     SubscriptionCreate,
     SubscriptionUpdate,
-    SubscriptionResponse
+    SubscriptionResponse,
 )
 from Module4_NiruAPI.services.notification_service import NotificationService
 from Module4_NiruAPI.services.news_service import NewsService
@@ -30,7 +31,9 @@ news_service: Optional[NewsService] = None
 def get_notification_service() -> NotificationService:
     """Dependency to get notification service"""
     if notification_service is None:
-        raise HTTPException(status_code=503, detail="Notification service not initialized")
+        raise HTTPException(
+            status_code=503, detail="Notification service not initialized"
+        )
     return notification_service
 
 
@@ -124,4 +127,3 @@ async def get_sources():
     except Exception as e:
         logger.error(f"Error getting sources: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-

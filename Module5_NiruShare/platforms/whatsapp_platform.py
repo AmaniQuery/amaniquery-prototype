@@ -1,6 +1,7 @@
 """
 WhatsApp platform plugin
 """
+
 from typing import List, Dict, Optional, Union
 from urllib.parse import quote
 
@@ -10,11 +11,11 @@ from ..formatters.whatsapp_formatter import WhatsAppFormatter
 
 class WhatsAppPlatform(BasePlatform):
     """WhatsApp platform handler"""
-    
+
     def __init__(self):
         self.formatter = WhatsAppFormatter()
         super().__init__()
-    
+
     def get_metadata(self) -> PlatformMetadata:
         """Return WhatsApp platform metadata"""
         return PlatformMetadata(
@@ -28,7 +29,7 @@ class WhatsAppPlatform(BasePlatform):
             requires_auth=True,
             features=["links", "images", "videos", "groups"],
         )
-    
+
     def format_post(
         self,
         answer: str,
@@ -47,7 +48,7 @@ class WhatsAppPlatform(BasePlatform):
         if style:
             result["style"] = style
         return result
-    
+
     def generate_share_link(
         self,
         content: Union[str, List[str]],
@@ -56,9 +57,8 @@ class WhatsAppPlatform(BasePlatform):
         """Generate WhatsApp share link"""
         text = content[0] if isinstance(content, list) else str(content)
         encoded_text = quote(text)
-        
+
         if url:
             encoded_url = quote(url)
             return f"https://wa.me/?text={encoded_text}%20{encoded_url}"
         return f"https://wa.me/?text={encoded_text}"
-

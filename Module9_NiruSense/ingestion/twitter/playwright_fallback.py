@@ -3,6 +3,7 @@ from playwright_stealth import stealth_sync
 import time
 import random
 
+
 class TwitterPlaywrightScraper:
     def search(self, query: str):
         print("Falling back to Playwright for Twitter...")
@@ -31,14 +32,18 @@ class TwitterPlaywrightScraper:
                 for element in tweet_elements:
                     text_el = element.query_selector('div[data-testid="tweetText"]')
                     if text_el:
-                        tweets.append({
-                            "text": text_el.inner_text(),
-                            "platform": "twitter_playwright",
-                            "id": str(random.randint(100000, 999999)) # Mock ID as extracting real ID is complex via DOM
-                        })
+                        tweets.append(
+                            {
+                                "text": text_el.inner_text(),
+                                "platform": "twitter_playwright",
+                                "id": str(
+                                    random.randint(100000, 999999)
+                                ),  # Mock ID as extracting real ID is complex via DOM
+                            }
+                        )
             except Exception as e:
                 print(f"Playwright error: {e}")
             finally:
                 browser.close()
-        
+
         return tweets

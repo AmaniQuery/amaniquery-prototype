@@ -29,8 +29,8 @@ class RedditFormatter(BaseFormatter):
             post_parts.append("\n\n**Sources:**\n\n")
             for i, source in enumerate(sources[:5], 1):
                 if isinstance(source, dict):
-                    title = str(source.get('title', '')).strip()
-                    url = str(source.get('url', '')).strip()
+                    title = str(source.get("title", "")).strip()
+                    url = str(source.get("url", "")).strip()
                     if url:
                         post_parts.append(f"{i}. [{title}]({url})\n\n")
                     else:

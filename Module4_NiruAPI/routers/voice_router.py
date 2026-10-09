@@ -4,6 +4,7 @@ Voice Router - Simplified REST API for Voice Agent with VibeVoice TTS
 Provides endpoints for text-to-speech and full voice conversations.
 Uses browser's Web Speech API for transcription (client-side).
 """
+
 import os
 import tempfile
 import asyncio
@@ -23,6 +24,7 @@ router = APIRouter(prefix="/api/v1/voice", tags=["voice"])
 # REQUEST/RESPONSE MODELS
 # =============================================================================
 
+
 class TTSRequest(BaseModel):
     text: str
     voice: Optional[str] = "Wayne"
@@ -38,6 +40,7 @@ class TTSResponse(BaseModel):
 
 class VoiceChatRequest(BaseModel):
     """Request for voice chat - text input (transcription done client-side)"""
+
     text: str
     category: str = "Kenyan Law"
     voice: Optional[str] = "Wayne"
@@ -45,6 +48,7 @@ class VoiceChatRequest(BaseModel):
 
 class VoiceChatResponse(BaseModel):
     """Response with answer text and audio"""
+
     answer: str
     sources: List[Dict[str, Any]]
     audio_url: str
@@ -67,8 +71,10 @@ class HealthResponse(BaseModel):
 # MODULE STATE
 # =============================================================================
 
+
 class _State:
     """Global state for voice module"""
+
     tts = None
     rag_integration = None
     start_time = time.time()
@@ -83,6 +89,7 @@ def get_tts():
     if _state.tts is None:
         try:
             from Module6_NiruVoice.vibevoice_tts import VibeVoiceTTS
+
             _state.tts = VibeVoiceTTS()
             logger.info("VibeVoice TTS initialized")
         except Exception as e:
@@ -96,6 +103,7 @@ def get_rag_integration():
     if _state.rag_integration is None:
         try:
             from Module6_NiruVoice.rag_integration import VoiceRAGIntegration
+
             _state.rag_integration = VoiceRAGIntegration()
             logger.info("RAG integration initialized")
         except Exception as e:
@@ -108,7 +116,7 @@ def cleanup_old_audio_files():
     """Clean up audio files older than 5 minutes"""
     now = time.time()
     to_remove = []
-    
+
     for filename, created_time in _state.audio_files.items():
         if now - created_time > 300:  # 5 minutes
             try:
@@ -116,7 +124,7 @@ def cleanup_old_audio_files():
                 to_remove.append(filename)
             except Exception:
                 pass
-    
+
     for f in to_remove:
         _state.audio_files.pop(f, None)
 
@@ -125,52 +133,50 @@ def cleanup_old_audio_files():
 # ENDPOINTS
 # =============================================================================
 
+
 @router.post("/speak", response_model=TTSResponse)
-async def text_to_speech(
-    request: TTSRequest,
-    background_tasks: BackgroundTasks
-):
+async def text_to_speech(request: TTSRequest, background_tasks: BackgroundTasks):
     """
     Convert text to speech using VibeVoice
-    
+
     Returns audio URL that can be fetched separately.
     """
     start_time = time.time()
-    
+
     if not request.text or not request.text.strip():
         raise HTTPException(status_code=400, detail="Text is required")
-    
+
     if len(request.text) > 10000:
         raise HTTPException(status_code=400, detail="Text too long (max 10000 chars)")
-    
+
     try:
         tts = get_tts()
-        
+
         # Generate audio
         audio_bytes = await tts.synthesize(
             text=request.text,
             voice=request.voice,
             cfg_scale=request.cfg_scale,
         )
-        
+
         # Save to temp file
         filename = f"tts_{int(time.time() * 1000)}.wav"
         filepath = Path(tempfile.gettempdir()) / filename
         filepath.write_bytes(audio_bytes)
-        
+
         # Track for cleanup
         _state.audio_files[str(filepath)] = time.time()
         background_tasks.add_task(cleanup_old_audio_files)
-        
+
         duration_ms = (time.time() - start_time) * 1000
-        
+
         return TTSResponse(
             audio_url=f"/api/v1/voice/audio/{filename}",
             duration_ms=duration_ms,
             text_length=len(request.text),
             voice=request.voice or "Wayne",
         )
-        
+
     except Exception as e:
         logger.error(f"TTS failed: {e}")
         raise HTTPException(status_code=500, detail=f"TTS error: {str(e)}")
@@ -183,7 +189,7 @@ async def text_to_speech_stream(request: TTSRequest):
     """
     if not request.text or not request.text.strip():
         raise HTTPException(status_code=400, detail="Text is required")
-    
+
     try:
         tts = get_tts()
         audio_bytes = await tts.synthesize(
@@ -191,43 +197,38 @@ async def text_to_speech_stream(request: TTSRequest):
             voice=request.voice,
             cfg_scale=request.cfg_scale,
         )
-        
+
         return Response(
             content=audio_bytes,
             media_type="audio/wav",
-            headers={
-                "Content-Disposition": f'attachment; filename="speech.wav"'
-            }
+            headers={"Content-Disposition": f'attachment; filename="speech.wav"'},
         )
-        
+
     except Exception as e:
         logger.error(f"TTS stream failed: {e}")
         raise HTTPException(status_code=500, detail=f"TTS error: {str(e)}")
 
 
 @router.post("/chat", response_model=VoiceChatResponse)
-async def voice_chat(
-    request: VoiceChatRequest,
-    background_tasks: BackgroundTasks
-):
+async def voice_chat(request: VoiceChatRequest, background_tasks: BackgroundTasks):
     """
     Full voice conversation pipeline:
     1. Receive transcribed text (client does STT via Web Speech API)
     2. Query RAG for answer
     3. Generate speech response (TTS)
-    
+
     Returns answer text and audio URL.
     """
     start_time = time.time()
-    
+
     if not request.text or not request.text.strip():
         raise HTTPException(status_code=400, detail="Text is required")
-    
+
     try:
         # Step 1: Query RAG
         logger.info(f"[Voice Chat] Query: {request.text[:50]}...")
         rag = get_rag_integration()
-        
+
         rag_response = None
         for attempt in range(3):
             try:
@@ -238,40 +239,40 @@ async def voice_chat(
                 if attempt == 2:
                     rag_response = {
                         "text": "I apologize, but I'm having trouble processing your query right now. Please try again.",
-                        "sources": []
+                        "sources": [],
                     }
                 else:
                     await asyncio.sleep(1)
-        
+
         answer = rag_response.get("text", "No answer generated.")
         sources = rag_response.get("sources", [])
-        
+
         logger.info(f"[Voice Chat] Answer: {len(answer)} chars")
-        
+
         # Step 2: Generate TTS
         tts = get_tts()
         audio_bytes = await tts.synthesize(
             text=answer,
             voice=request.voice,
         )
-        
+
         # Save audio
         filename = f"chat_{int(time.time() * 1000)}.wav"
         filepath = Path(tempfile.gettempdir()) / filename
         filepath.write_bytes(audio_bytes)
-        
+
         _state.audio_files[str(filepath)] = time.time()
         background_tasks.add_task(cleanup_old_audio_files)
-        
+
         duration_ms = (time.time() - start_time) * 1000
-        
+
         return VoiceChatResponse(
             answer=answer,
             sources=sources,
             audio_url=f"/api/v1/voice/audio/{filename}",
             duration_ms=duration_ms,
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -284,18 +285,14 @@ async def serve_audio(filename: str):
     """Serve generated audio files"""
     # Check temp directory
     filepath = Path(tempfile.gettempdir()) / filename
-    
+
     if not filepath.exists():
         # Also check current directory (legacy)
         filepath = Path(filename)
         if not filepath.exists():
             raise HTTPException(status_code=404, detail="Audio file not found")
-    
-    return FileResponse(
-        filepath,
-        media_type="audio/wav",
-        filename=filename
-    )
+
+    return FileResponse(filepath, media_type="audio/wav", filename=filename)
 
 
 @router.get("/voices", response_model=List[VoiceInfo])
@@ -304,11 +301,8 @@ async def list_voices():
     try:
         tts = get_tts()
         voices = tts.get_available_voices()
-        
-        return [
-            VoiceInfo(name=v, language="en")
-            for v in voices
-        ]
+
+        return [VoiceInfo(name=v, language="en") for v in voices]
     except Exception as e:
         logger.error(f"Failed to list voices: {e}")
         # Return default voice on error
@@ -321,7 +315,7 @@ async def health_check():
     try:
         tts = get_tts()
         health = tts.health_check()
-        
+
         return HealthResponse(
             status=health.get("status", "unknown"),
             tts_provider="vibevoice",

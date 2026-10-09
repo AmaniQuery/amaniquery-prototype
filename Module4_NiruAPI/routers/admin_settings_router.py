@@ -52,6 +52,7 @@ def track_query(latency_ms: float = 0.0, cache_hit: bool = False):
 
 # ============ Models ============
 
+
 class KnowledgeBaseResponse(BaseModel):
     id: str
     name: str
@@ -93,23 +94,23 @@ KNOWLEDGE_BASES = {
     "kenya_law": {
         "name": "Kenya Law",
         "description": "Constitution, Acts, Bills, Case Law from Kenya Law Reports",
-        "type": "legal"
+        "type": "legal",
     },
     "kenya_news": {
-        "name": "Kenya News", 
+        "name": "Kenya News",
         "description": "Current affairs from major Kenyan news outlets",
-        "type": "news"
+        "type": "news",
     },
     "parliament": {
         "name": "Parliament Records",
         "description": "Bills, Hansard, Committee Reports from Parliament",
-        "type": "legal"
+        "type": "legal",
     },
     "general": {
         "name": "General Knowledge",
         "description": "General information and context",
-        "type": "general"
-    }
+        "type": "general",
+    },
 }
 
 
@@ -119,19 +120,17 @@ async def get_knowledge_bases():
     try:
         vector_store = VectorStore()
         knowledge_bases = []
-        
+
         for kb_id, kb_info in KNOWLEDGE_BASES.items():
             # Try to get document count from vector store
             doc_count = 0
             status = "active"
-            
+
             try:
                 # Query for count (use empty query with high n_results to get count)
                 # This is a heuristic - actual implementation depends on vector store backend
                 results = vector_store.query(
-                    query_text="test", 
-                    n_results=1, 
-                    namespace=kb_id
+                    query_text="test", n_results=1, namespace=kb_id
                 )
                 if results:
                     doc_count = len(results) * 100  # Estimate based on results
@@ -141,19 +140,21 @@ async def get_knowledge_bases():
             except Exception as e:
                 logger.warning(f"Could not query namespace {kb_id}: {e}")
                 status = "error"
-            
-            knowledge_bases.append(KnowledgeBaseResponse(
-                id=kb_id,
-                name=kb_info["name"],
-                description=kb_info["description"],
-                type=kb_info["type"],
-                document_count=doc_count,
-                status=status,
-                last_updated=datetime.utcnow().isoformat()
-            ))
-        
+
+            knowledge_bases.append(
+                KnowledgeBaseResponse(
+                    id=kb_id,
+                    name=kb_info["name"],
+                    description=kb_info["description"],
+                    type=kb_info["type"],
+                    document_count=doc_count,
+                    status=status,
+                    last_updated=datetime.utcnow().isoformat(),
+                )
+            )
+
         return knowledge_bases
-        
+
     except Exception as e:
         logger.error(f"Error getting knowledge bases: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -164,7 +165,7 @@ async def get_knowledge_base(kb_id: str):
     """Get a specific knowledge base by ID"""
     if kb_id not in KNOWLEDGE_BASES:
         raise HTTPException(status_code=404, detail=f"Knowledge base {kb_id} not found")
-    
+
     kb_info = KNOWLEDGE_BASES[kb_id]
     return KnowledgeBaseResponse(
         id=kb_id,
@@ -173,7 +174,7 @@ async def get_knowledge_base(kb_id: str):
         type=kb_info["type"],
         document_count=0,
         status="active",
-        last_updated=datetime.utcnow().isoformat()
+        last_updated=datetime.utcnow().isoformat(),
     )
 
 
@@ -190,7 +191,9 @@ async def create_knowledge_base(req: CreateKnowledgeBaseRequest):
     """Create a new knowledge base namespace"""
     kb_id = req.name.lower().replace(" ", "_").replace("-", "_")
     if kb_id in KNOWLEDGE_BASES:
-        raise HTTPException(status_code=409, detail=f"Knowledge base '{kb_id}' already exists")
+        raise HTTPException(
+            status_code=409, detail=f"Knowledge base '{kb_id}' already exists"
+        )
     KNOWLEDGE_BASES[kb_id] = {
         "name": req.name,
         "description": req.description,
@@ -204,7 +207,7 @@ async def create_knowledge_base(req: CreateKnowledgeBaseRequest):
         type=req.type,
         document_count=0,
         status="active",
-        last_updated=datetime.utcnow().isoformat()
+        last_updated=datetime.utcnow().isoformat(),
     )
 
 
@@ -214,7 +217,9 @@ async def delete_knowledge_base(kb_id: str):
     if kb_id not in KNOWLEDGE_BASES:
         raise HTTPException(status_code=404, detail=f"Knowledge base {kb_id} not found")
     if kb_id in ("kenya_law", "kenya_news", "parliament", "general"):
-        raise HTTPException(status_code=403, detail="Cannot delete system knowledge bases")
+        raise HTTPException(
+            status_code=403, detail="Cannot delete system knowledge bases"
+        )
     del KNOWLEDGE_BASES[kb_id]
     logger.info(f"Deleted knowledge base: {kb_id}")
 
@@ -229,7 +234,7 @@ AI_MODELS = [
         "provider": "Moonshot",
         "enabled": True,
         "is_default": True,
-        "status": "connected" if os.getenv("MOONSHOT_API_KEY") else "unconfigured"
+        "status": "connected" if os.getenv("MOONSHOT_API_KEY") else "unconfigured",
     },
     {
         "id": "gemini-2.5-flash",
@@ -237,7 +242,7 @@ AI_MODELS = [
         "provider": "Google",
         "enabled": True,
         "is_default": False,
-        "status": "connected" if os.getenv("GEMINI_API_KEY") else "unconfigured"
+        "status": "connected" if os.getenv("GEMINI_API_KEY") else "unconfigured",
     },
     {
         "id": "gemini-1.5-pro",
@@ -245,7 +250,7 @@ AI_MODELS = [
         "provider": "Google",
         "enabled": True,
         "is_default": False,
-        "status": "connected" if os.getenv("GEMINI_API_KEY") else "unconfigured"
+        "status": "connected" if os.getenv("GEMINI_API_KEY") else "unconfigured",
     },
     {
         "id": "gpt-4o-mini",
@@ -253,7 +258,7 @@ AI_MODELS = [
         "provider": "OpenAI",
         "enabled": False,
         "is_default": False,
-        "status": "connected" if os.getenv("OPENAI_API_KEY") else "unconfigured"
+        "status": "connected" if os.getenv("OPENAI_API_KEY") else "unconfigured",
     },
     {
         "id": "gpt-4o",
@@ -261,7 +266,7 @@ AI_MODELS = [
         "provider": "OpenAI",
         "enabled": False,
         "is_default": False,
-        "status": "connected" if os.getenv("OPENAI_API_KEY") else "unconfigured"
+        "status": "connected" if os.getenv("OPENAI_API_KEY") else "unconfigured",
     },
     {
         "id": "claude-3.5-sonnet",
@@ -269,8 +274,8 @@ AI_MODELS = [
         "provider": "Anthropic",
         "enabled": False,
         "is_default": False,
-        "status": "connected" if os.getenv("ANTHROPIC_API_KEY") else "unconfigured"
-    }
+        "status": "connected" if os.getenv("ANTHROPIC_API_KEY") else "unconfigured",
+    },
 ]
 
 
@@ -279,16 +284,18 @@ async def get_models():
     """Get all configured AI models with their status"""
     models = []
     for model in AI_MODELS:
-        models.append(AIModelConfig(
-            id=model["id"],
-            name=model["name"],
-            provider=model["provider"],
-            enabled=model["enabled"],
-            is_default=model["is_default"],
-            status=model["status"],
-            temperature=0.7,
-            max_tokens=4096
-        ))
+        models.append(
+            AIModelConfig(
+                id=model["id"],
+                name=model["name"],
+                provider=model["provider"],
+                enabled=model["enabled"],
+                is_default=model["is_default"],
+                status=model["status"],
+                temperature=0.7,
+                max_tokens=4096,
+            )
+        )
     return models
 
 
@@ -304,7 +311,7 @@ async def update_model(model_id: str, config: AIModelConfig):
                     m["is_default"] = False
                 model["is_default"] = True
             return {"status": "updated", "model": model}
-    
+
     raise HTTPException(status_code=404, detail=f"Model {model_id} not found")
 
 
@@ -321,7 +328,7 @@ RAG_CONFIG = {
     "hybrid_alpha": 0.7,
     "parallel_retrieval": True,
     "enable_semantic_cache": True,
-    "cache_ttl_hours": 24
+    "cache_ttl_hours": 24,
 }
 
 
@@ -334,7 +341,6 @@ async def get_rag_config():
 @router.put("/rag/config")
 async def update_rag_config(config: RAGConfigUpdate):
     """Update RAG pipeline configuration"""
-    global RAG_CONFIG
     RAG_CONFIG.update(config.dict())
     logger.info(f"RAG config updated: {RAG_CONFIG}")
     return {"status": "updated", "config": RAG_CONFIG}
@@ -370,5 +376,5 @@ async def get_rag_stats():
         "cache_hit_rate": round(cache_hit_rate, 4),
         "active_namespaces": len(KNOWLEDGE_BASES),
         "reranking_enabled": RAG_CONFIG["use_reranking"],
-        "hyde_enabled": RAG_CONFIG["use_hyde"]
+        "hyde_enabled": RAG_CONFIG["use_hyde"],
     }

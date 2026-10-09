@@ -15,7 +15,7 @@ class ReportGenerator:
     """
     Report generator using Gemini AI for creating structured reports
     on legal queries and information gathering from Kenya's laws.
-    
+
     Enhancements:
     - Async methods for parallel report generation
     - Streaming support for long reports
@@ -26,7 +26,7 @@ class ReportGenerator:
     def __init__(self, api_key: Optional[str] = None):
         """
         Initialize report generator with Gemini API
-        
+
         Args:
             api_key: Gemini API key (optional, will use env var if not provided)
         """
@@ -36,15 +36,20 @@ class ReportGenerator:
 
         try:
             import google.generativeai as genai
+
             genai.configure(api_key=self.api_key)
             self.genai = genai
             # Use faster gemini-2.5-flash for performance
-            self.model = genai.GenerativeModel('gemini-2.5-flash')
+            self.model = genai.GenerativeModel("gemini-2.5-flash")
             logger.info("Report generator initialized with Gemini 2.5 Flash")
         except ImportError:
-            raise ValueError("google-generativeai package not installed. Install with: pip install google-generativeai")
+            raise ValueError(
+                "google-generativeai package not installed. Install with: pip install google-generativeai"
+            )
 
-    def generate_legal_query_report(self, query_analysis: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_legal_query_report(
+        self, query_analysis: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Generate a comprehensive legal query report
 
@@ -115,8 +120,8 @@ class ReportGenerator:
                 "metadata": {
                     "sections": self._extract_sections(report_content),
                     "word_count": len(report_content.split()),
-                    "readability_score": "professional"
-                }
+                    "readability_score": "professional",
+                },
             }
 
         except Exception as e:
@@ -124,10 +129,12 @@ class ReportGenerator:
             return {
                 "error": str(e),
                 "report_type": "legal_query",
-                "generated_at": datetime.utcnow().isoformat()
+                "generated_at": datetime.utcnow().isoformat(),
             }
 
-    def generate_legal_research_report(self, research_data: Dict[str, Any], research_findings: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_legal_research_report(
+        self, research_data: Dict[str, Any], research_findings: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Generate a legal research report
 
@@ -203,13 +210,13 @@ class ReportGenerator:
                 "model_used": "gemini-1.5-pro",
                 "data_sources": {
                     "research_data": research_data,
-                    "research_findings": research_findings
+                    "research_findings": research_findings,
                 },
                 "metadata": {
                     "sections": self._extract_sections(report_content),
                     "recommendations": self._extract_recommendations(report_content),
-                    "word_count": len(report_content.split())
-                }
+                    "word_count": len(report_content.split()),
+                },
             }
 
         except Exception as e:
@@ -217,10 +224,12 @@ class ReportGenerator:
             return {
                 "error": str(e),
                 "report_type": "legal_research",
-                "generated_at": datetime.utcnow().isoformat()
+                "generated_at": datetime.utcnow().isoformat(),
             }
 
-    def generate_constitutional_law_report(self, constitutional_analysis: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_constitutional_law_report(
+        self, constitutional_analysis: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Generate a constitutional law report
 
@@ -289,9 +298,11 @@ class ReportGenerator:
                 "constitutional_analysis": constitutional_analysis,
                 "metadata": {
                     "sections": self._extract_sections(report_content),
-                    "constitutional_references": self._extract_constitutional_references(report_content),
-                    "word_count": len(report_content.split())
-                }
+                    "constitutional_references": self._extract_constitutional_references(
+                        report_content
+                    ),
+                    "word_count": len(report_content.split()),
+                },
             }
 
         except Exception as e:
@@ -299,10 +310,12 @@ class ReportGenerator:
             return {
                 "error": str(e),
                 "report_type": "constitutional_law",
-                "generated_at": datetime.utcnow().isoformat()
+                "generated_at": datetime.utcnow().isoformat(),
             }
 
-    def generate_compliance_report(self, legal_requirements: Dict[str, Any], compliance_data: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_compliance_report(
+        self, legal_requirements: Dict[str, Any], compliance_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Generate a legal compliance report
 
@@ -379,13 +392,13 @@ class ReportGenerator:
                 "model_used": "gemini-1.5-pro",
                 "data_sources": {
                     "legal_requirements": legal_requirements,
-                    "compliance_data": compliance_data
+                    "compliance_data": compliance_data,
                 },
                 "metadata": {
                     "sections": self._extract_sections(report_content),
                     "compliance_gaps": self._identify_compliance_gaps(report_content),
-                    "word_count": len(report_content.split())
-                }
+                    "word_count": len(report_content.split()),
+                },
             }
 
         except Exception as e:
@@ -393,10 +406,12 @@ class ReportGenerator:
             return {
                 "error": str(e),
                 "report_type": "compliance",
-                "generated_at": datetime.utcnow().isoformat()
+                "generated_at": datetime.utcnow().isoformat(),
             }
 
-    def generate_technical_audit_report(self, system_metrics: Dict[str, Any], performance_data: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_technical_audit_report(
+        self, system_metrics: Dict[str, Any], performance_data: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Generate a technical audit report
 
@@ -473,14 +488,14 @@ class ReportGenerator:
                 "model_used": "gemini-1.5-pro",
                 "data_sources": {
                     "system_metrics": system_metrics,
-                    "performance_data": performance_data
+                    "performance_data": performance_data,
                 },
                 "metadata": {
                     "sections": self._extract_sections(report_content),
                     "critical_issues": self._count_critical_issues(report_content),
                     "recommendations": self._extract_recommendations(report_content),
-                    "word_count": len(report_content.split())
-                }
+                    "word_count": len(report_content.split()),
+                },
             }
 
         except Exception as e:
@@ -488,10 +503,12 @@ class ReportGenerator:
             return {
                 "error": str(e),
                 "report_type": "technical_audit",
-                "generated_at": datetime.utcnow().isoformat()
+                "generated_at": datetime.utcnow().isoformat(),
             }
 
-    def generate_impact_assessment_report(self, usage_data: Dict[str, Any], impact_metrics: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_impact_assessment_report(
+        self, usage_data: Dict[str, Any], impact_metrics: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """
         Generate an impact assessment report
 
@@ -568,13 +585,13 @@ class ReportGenerator:
                 "model_used": "gemini-1.5-pro",
                 "data_sources": {
                     "usage_data": usage_data,
-                    "impact_metrics": impact_metrics
+                    "impact_metrics": impact_metrics,
                 },
                 "metadata": {
                     "sections": self._extract_sections(report_content),
                     "impact_areas": self._identify_impact_areas(report_content),
-                    "word_count": len(report_content.split())
-                }
+                    "word_count": len(report_content.split()),
+                },
             }
 
         except Exception as e:
@@ -582,17 +599,17 @@ class ReportGenerator:
             return {
                 "error": str(e),
                 "report_type": "impact_assessment",
-                "generated_at": datetime.utcnow().isoformat()
+                "generated_at": datetime.utcnow().isoformat(),
             }
 
     def _extract_sections(self, content: str) -> List[str]:
         """Extract section headers from report content"""
-        lines = content.split('\n')
+        lines = content.split("\n")
         sections = []
 
         for line in lines:
             line = line.strip()
-            if line and len(line) < 100 and not line.startswith(' '):
+            if line and len(line) < 100 and not line.startswith(" "):
                 # Likely a section header
                 if any(char.isdigit() for char in line[:3]) or line[0].isupper():
                     sections.append(line)
@@ -602,16 +619,20 @@ class ReportGenerator:
     def _extract_recommendations(self, content: str) -> List[Dict[str, str]]:
         """Extract recommendations with priority levels"""
         recommendations = []
-        lines = content.split('\n')
+        lines = content.split("\n")
         current_rec = None
 
         for line in lines:
             line = line.strip()
-            if 'recommendation' in line.lower() or 'priority:' in line.lower():
+            if "recommendation" in line.lower() or "priority:" in line.lower():
                 if current_rec:
                     recommendations.append(current_rec)
                 current_rec = {"text": line, "priority": "Medium"}
-            elif current_rec and ('high' in line.lower() or 'medium' in line.lower() or 'low' in line.lower()):
+            elif current_rec and (
+                "high" in line.lower()
+                or "medium" in line.lower()
+                or "low" in line.lower()
+            ):
                 current_rec["priority"] = line.split()[-1].title()
             elif current_rec:
                 current_rec["text"] += " " + line
@@ -623,7 +644,14 @@ class ReportGenerator:
 
     def _count_critical_issues(self, content: str) -> int:
         """Count critical issues mentioned in the report"""
-        critical_keywords = ['critical', 'severe', 'urgent', 'immediate', 'failure', 'breakdown']
+        critical_keywords = [
+            "critical",
+            "severe",
+            "urgent",
+            "immediate",
+            "failure",
+            "breakdown",
+        ]
         content_lower = content.lower()
         return sum(1 for keyword in critical_keywords if keyword in content_lower)
 
@@ -633,15 +661,15 @@ class ReportGenerator:
         content_lower = content.lower()
 
         area_keywords = {
-            'social': ['social', 'community', 'democratic', 'participation'],
-            'economic': ['economic', 'cost', 'productivity', 'business'],
-            'educational': ['education', 'learning', 'knowledge', 'training'],
-            'policy': ['policy', 'governance', 'government', 'transparency'],
-            'accessibility': ['accessibility', 'inclusion', 'equity', 'digital divide']
+            "social": ["social", "community", "democratic", "participation"],
+            "economic": ["economic", "cost", "productivity", "business"],
+            "educational": ["education", "learning", "knowledge", "training"],
+            "policy": ["policy", "governance", "government", "transparency"],
+            "accessibility": ["accessibility", "inclusion", "equity", "digital divide"],
         }
 
         for area, keywords in area_keywords.items():
             if any(keyword in content_lower for keyword in keywords):
                 impact_areas.append(area)
 
-        return impact_area
+        return impact_areas

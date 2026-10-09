@@ -2,6 +2,7 @@
 Query Router - Main query endpoints for AmaniQuery
 Uses AmanIQ v2 agent orchestration for intelligent query processing
 """
+
 import os
 import json
 import asyncio
@@ -14,6 +15,7 @@ from pydantic import BaseModel
 # User profile store for persistent personalization
 try:
     from ..services.user_profile_store import UserProfileStore, get_profile_store
+
     PROFILE_STORE_AVAILABLE = True
 except ImportError:
     PROFILE_STORE_AVAILABLE = False
@@ -21,12 +23,15 @@ except ImportError:
 
 # Aggressive semantic cache
 try:
-    from ..services.aggressive_cache import get_aggressive_cache, AggressiveSemanticCache
+    from ..services.aggressive_cache import (
+        get_aggressive_cache,
+        AggressiveSemanticCache,
+    )
+
     AGGRESSIVE_CACHE_AVAILABLE = True
 except ImportError:
     AGGRESSIVE_CACHE_AVAILABLE = False
     logger.warning("AggressiveSemanticCache not available")
-
 
 
 router = APIRouter(prefix="/api/v1", tags=["Query"])
@@ -36,8 +41,10 @@ router = APIRouter(prefix="/api/v1", tags=["Query"])
 # REQUEST/RESPONSE MODELS
 # =============================================================================
 
+
 class QueryRequest(BaseModel):
     """Query request model"""
+
     query: str
     top_k: int = 5
     category: Optional[str] = None
@@ -51,6 +58,7 @@ class QueryRequest(BaseModel):
 
 class Source(BaseModel):
     """Source model"""
+
     title: str
     url: str
     source_name: str
@@ -60,6 +68,7 @@ class Source(BaseModel):
 
 class QueryResponse(BaseModel):
     """Query response model"""
+
     answer: str
     sources: List[Source] = []
     query_time: float
@@ -72,8 +81,10 @@ class QueryResponse(BaseModel):
 # DEPENDENCIES - State container to avoid global variable issues
 # =============================================================================
 
+
 class QueryRouterState:
     """State container for query router dependencies"""
+
     vector_store = None
     rag_pipeline = None
     cache_manager = None
@@ -83,6 +94,7 @@ class QueryRouterState:
     vision_rag_service = None
     vision_storage = None
     user_profile_store: Optional[UserProfileStore] = None  # Added for profiles
+
 
 _state = QueryRouterState()
 
@@ -123,25 +135,24 @@ def get_cache_manager():
 # HELPER FUNCTIONS
 # =============================================================================
 
+
 def save_query_to_chat(session_id: str, query: str, result: Dict, role: str = "user"):
     """Helper function to save query and response to chat database"""
     if _state.chat_manager is None or not session_id:
         return
-    
+
     try:
         # Validate session exists
         session = _state.chat_manager.get_session(session_id)
         if not session:
             logger.warning(f"Session {session_id} not found, skipping message save")
             return
-        
+
         # Save user message
         _state.chat_manager.add_message(
-            session_id=session_id,
-            content=query,
-            role="user"
+            session_id=session_id, content=query, role="user"
         )
-        
+
         # Save assistant response
         _state.chat_manager.add_message(
             session_id=session_id,
@@ -149,14 +160,14 @@ def save_query_to_chat(session_id: str, query: str, result: Dict, role: str = "u
             role="assistant",
             token_count=result.get("retrieved_chunks", 0),
             model_used=result.get("model_used", "unknown"),
-            sources=result.get("sources", [])
+            sources=result.get("sources", []),
         )
-        
+
         # Generate session title if needed
         if not session.title:
             title = _state.chat_manager.generate_session_title(session_id)
             _state.chat_manager.update_session_title(session_id, title)
-        
+
         logger.debug(f"Saved query to chat session {session_id}")
     except Exception as e:
         logger.warning(f"Failed to save query to chat: {e}")
@@ -166,11 +177,12 @@ def save_query_to_chat(session_id: str, query: str, result: Dict, role: str = "u
 # ENDPOINTS
 # =============================================================================
 
+
 @router.post("/query", response_model=QueryResponse)
 async def query(request: QueryRequest):
     """
     Main query endpoint - Ask questions about Kenyan law, parliament, and news
-    
+
     **Uses AmanIQ v2 local agents when available for:**
     - Intent classification (wanjiku/wakili/mwanahabari)
     - Multi-step reasoning with tool orchestration
@@ -178,13 +190,13 @@ async def query(request: QueryRequest):
     - Persona-optimized retrieval
     - JSON-enforced structured responses
     - Self-correcting validation
-    
+
     **Example queries:**
     - "What does the Kenyan Constitution say about freedom of speech?"
     - "What are the recent parliamentary debates on finance?"
     - "Latest news on AI policy in Kenya"
     - "Kanjo wameongeza parking fees aje?" (Sheng)
-    
+
     **Vision RAG:** If session has uploaded images/PDFs, automatically uses Vision RAG.
     """
     try:
@@ -195,8 +207,10 @@ async def query(request: QueryRequest):
             session_images = _state.vision_storage.get(request.session_id, [])
             if session_images:
                 use_vision_rag = True
-                logger.info(f"Using Vision RAG for session {request.session_id} with {len(session_images)} image(s)")
-        
+                logger.info(
+                    f"Using Vision RAG for session {request.session_id} with {len(session_images)} image(s)"
+                )
+
         # Define computation function for caching
         async def compute_response():
             if use_vision_rag:
@@ -208,37 +222,41 @@ async def query(request: QueryRequest):
                     temperature=request.temperature,
                     max_tokens=request.max_tokens,
                 )
-                
+
                 # Convert vision sources to Source format
                 sources = []
                 for src in result.get("sources", []):
-                    sources.append({
-                        "title": src.get("filename", "Image"),
-                        "url": "",
-                        "source_name": src.get("source_file", "Uploaded Image"),
-                        "category": "vision",
-                        "excerpt": f"Image similarity: {src.get('similarity', 0):.2f}",
-                    })
-                
+                    sources.append(
+                        {
+                            "title": src.get("filename", "Image"),
+                            "url": "",
+                            "source_name": src.get("source_file", "Uploaded Image"),
+                            "category": "vision",
+                            "excerpt": f"Image similarity: {src.get('similarity', 0):.2f}",
+                        }
+                    )
+
                 result["sources"] = sources
                 return result
-            
+
             # Use AmaniQ v2 agent for all non-vision queries (REQUIRED)
             logger.info("[AmaniQ v2] Using agent orchestration (System Brain)")
-            
+
             try:
                 # Get conversation history if session exists
                 conversation_history = []
                 if request.session_id and _state.chat_manager:
                     try:
-                        messages = _state.chat_manager.get_messages(request.session_id, limit=10)
+                        messages = _state.chat_manager.get_messages(
+                            request.session_id, limit=10
+                        )
                         conversation_history = [
                             {"role": msg.role, "content": msg.content}
                             for msg in messages
                         ]
                     except Exception:
                         conversation_history = []
-                
+
                 # Load or create user profile for personalization
                 user_profile = None
                 user_id = request.user_id or request.session_id
@@ -246,13 +264,15 @@ async def query(request: QueryRequest):
                     try:
                         if _state.user_profile_store is None:
                             _state.user_profile_store = get_profile_store()
-                        
+
                         profile = await _state.user_profile_store.get_profile(user_id)
                         user_profile = profile.to_dict()
-                        logger.debug(f"Loaded user profile for {user_id}: queries={profile.total_queries}")
+                        logger.debug(
+                            f"Loaded user profile for {user_id}: queries={profile.total_queries}"
+                        )
                     except Exception as e:
                         logger.warning(f"Failed to load user profile: {e}")
-                
+
                 # Execute AmaniQ v2 pipeline (THE BRAIN)
                 amaniq_result = await _state.amaniq_v2_agent.chat(
                     message=request.query,
@@ -260,7 +280,7 @@ async def query(request: QueryRequest):
                     message_history=conversation_history,
                     user_profile=user_profile,  # Pass profile for personalization
                 )
-                
+
                 # Track query type for user profiling
                 if user_id and PROFILE_STORE_AVAILABLE and _state.user_profile_store:
                     try:
@@ -268,23 +288,29 @@ async def query(request: QueryRequest):
                         await _state.user_profile_store.track_query(user_id, intent)
                     except Exception as e:
                         logger.warning(f"Failed to track query: {e}")
-                
+
                 # Extract response data
                 answer = amaniq_result.get("answer", "")
                 confidence = amaniq_result.get("confidence", 0.0)
                 sources_data = amaniq_result.get("sources", [])
-                
+
                 # Format sources
                 sources = []
                 for src in sources_data:
-                    sources.append({
-                        "title": src.get("title", "Source"),
-                        "url": src.get("url", ""),
-                        "source_name": src.get("source_type", "Unknown"),
-                        "category": src.get("source_type", "general"),
-                        "excerpt": src.get("content", "")[:200] if src.get("content") else "",
-                    })
-                
+                    sources.append(
+                        {
+                            "title": src.get("title", "Source"),
+                            "url": src.get("url", ""),
+                            "source_name": src.get("source_type", "Unknown"),
+                            "category": src.get("source_type", "general"),
+                            "excerpt": (
+                                src.get("content", "")[:200]
+                                if src.get("content")
+                                else ""
+                            ),
+                        }
+                    )
+
                 result = {
                     "answer": answer,
                     "sources": sources,
@@ -296,12 +322,14 @@ async def query(request: QueryRequest):
                         "persona": amaniq_result.get("persona"),
                         "intent": amaniq_result.get("intent"),
                         "reasoning_steps": amaniq_result.get("reasoning_steps", 0),
-                    }
+                    },
                 }
-                
-                logger.info(f"[AmaniQ v2] Query completed with confidence {confidence:.2f}")
+
+                logger.info(
+                    f"[AmaniQ v2] Query completed with confidence {confidence:.2f}"
+                )
                 return result
-                
+
             except Exception as e:
                 # ONLY on error: Fall back to standard RAG pipeline
                 logger.error(f"[AmaniQ v2] CRITICAL ERROR: {e}")
@@ -313,7 +341,7 @@ async def query(request: QueryRequest):
                     source=request.source,
                     temperature=request.temperature,
                     max_tokens=request.max_tokens,
-                    session_id=request.session_id
+                    session_id=request.session_id,
                 )
                 return result
 
@@ -351,24 +379,24 @@ async def query(request: QueryRequest):
                 )
             else:
                 result = await compute_response()
-        
+
         # Save to chat if session_id provided
         if request.session_id:
             save_query_to_chat(request.session_id, request.query, result)
-        
+
         # Format sources for response
         sources_data = result.get("sources", [])
         sources = [Source(**src) for src in sources_data]
-        
+
         return QueryResponse(
             answer=result["answer"],
             sources=sources if request.include_sources else [],
             query_time=result.get("query_time", 0),
             retrieved_chunks=result.get("retrieved_chunks", 0),
             model_used=result.get("model_used", "unknown"),
-            structured_data=result.get("structured_data")
+            structured_data=result.get("structured_data"),
         )
-        
+
     except Exception as e:
         logger.error(f"Error processing query: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -378,7 +406,7 @@ async def query(request: QueryRequest):
 async def query_stream(request: QueryRequest):
     """
     Main query endpoint with streaming response - Fastest perceived speed
-    
+
     **Streaming Benefits:**
     - Time to first token: <1 second (vs 5-10 seconds)
     - User sees response immediately as it's generated
@@ -395,12 +423,12 @@ async def query_stream(request: QueryRequest):
             max_tokens=request.max_tokens,
             session_id=request.session_id,
         )
-        
+
         if not result.get("stream", False):
             # Fallback to regular response
             if request.session_id:
                 save_query_to_chat(request.session_id, request.query, result)
-            
+
             sources = [Source(**src) for src in result["sources"]]
             return QueryResponse(
                 answer=result["answer"],
@@ -409,14 +437,14 @@ async def query_stream(request: QueryRequest):
                 retrieved_chunks=result["retrieved_chunks"],
                 model_used=result["model_used"],
             )
-        
+
         # Return streaming response
         async def generate():
             full_answer = ""
             try:
                 answer_stream = result["answer_stream"]
                 rag_pipeline = get_rag_pipeline()
-                
+
                 if rag_pipeline.llm_provider in ["openai", "moonshot"]:
                     # OpenAI-style streaming
                     async for chunk in answer_stream:
@@ -424,7 +452,7 @@ async def query_stream(request: QueryRequest):
                             content = chunk.choices[0].delta.content
                             full_answer += content
                             yield f"data: {content}\n\n"
-                
+
                 elif rag_pipeline.llm_provider == "anthropic":
                     # Anthropic streaming
                     async for chunk in answer_stream:
@@ -432,37 +460,38 @@ async def query_stream(request: QueryRequest):
                             text = chunk.delta.text
                             full_answer += text
                             yield f"data: {text}\n\n"
-                
+
                 # Send sources at the end
                 sources_data = {
-                    "sources": [Source(**src).model_dump() for src in result["sources"]] if request.include_sources else [],
+                    "sources": (
+                        [Source(**src).model_dump() for src in result["sources"]]
+                        if request.include_sources
+                        else []
+                    ),
                     "query_time": result["query_time"],
                     "retrieved_chunks": result["retrieved_chunks"],
                     "model_used": result["model_used"],
                 }
                 yield f"data: [DONE]{json.dumps(sources_data)}\n\n"
-                
+
                 # Save to chat if session_id provided
                 if request.session_id and full_answer:
                     result["answer"] = full_answer
                     save_query_to_chat(request.session_id, request.query, result)
-                
+
             except Exception as e:
                 logger.error(f"Error in streaming: {e}")
                 yield f"data: [ERROR]{str(e)}\n\n"
-        
+
         return StreamingResponse(
             generate(),
             media_type="text/event-stream",
             headers={
                 "Cache-Control": "no-cache",
                 "Connection": "keep-alive",
-            }
+            },
         )
-        
+
     except Exception as e:
         logger.error(f"Error processing streaming query: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-

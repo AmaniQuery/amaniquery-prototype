@@ -1,6 +1,7 @@
 """
 News Aggregation API Router
 """
+
 from fastapi import APIRouter, Query, HTTPException, Depends
 from fastapi.responses import JSONResponse
 from typing import Optional, List
@@ -19,6 +20,7 @@ router = APIRouter(prefix="/api/v1/news", tags=["news"])
 
 class NewsArticle(BaseModel):
     """News article response model"""
+
     id: str
     url: str
     title: str
@@ -34,6 +36,7 @@ class NewsArticle(BaseModel):
 
 class NewsListResponse(BaseModel):
     """News list response"""
+
     articles: List[NewsArticle]
     total: int
     page: int
@@ -42,6 +45,7 @@ class NewsListResponse(BaseModel):
 
 class NewsSearchRequest(BaseModel):
     """News search request"""
+
     query: str
     sources: Optional[List[str]] = None
     categories: Optional[List[str]] = None
@@ -64,27 +68,25 @@ async def list_news(
     """List news articles with filtering"""
     try:
         from Module4_NiruAPI.services.news_service import NewsService
+
         service = NewsService()
-        
+
         source_list = sources.split(",") if sources else None
         category_list = categories.split(",") if categories else None
-        
+
         date_from = (datetime.utcnow() - timedelta(days=days)).isoformat()
-        
+
         articles, total = service.get_articles(
             sources=source_list,
             categories=category_list,
             min_quality_score=min_quality_score,
             date_from=date_from,
             limit=page_size,
-            offset=(page - 1) * page_size
+            offset=(page - 1) * page_size,
         )
-        
+
         return NewsListResponse(
-            articles=articles,
-            total=total,
-            page=page,
-            page_size=page_size
+            articles=articles, total=total, page=page, page_size=page_size
         )
     except Exception as e:
         logger.error(f"Error listing news: {e}")
@@ -96,12 +98,13 @@ async def get_article(article_id: str):
     """Get a single article by ID"""
     try:
         from Module4_NiruAPI.services.news_service import NewsService
+
         service = NewsService()
-        
+
         article = service.get_article_by_id(article_id)
         if not article:
             raise HTTPException(status_code=404, detail="Article not found")
-        
+
         return article
     except HTTPException:
         raise
@@ -115,8 +118,9 @@ async def search_news(request: NewsSearchRequest):
     """Search news articles semantically"""
     try:
         from Module4_NiruAPI.services.news_service import NewsService
+
         service = NewsService()
-        
+
         articles, total = service.search_articles(
             query=request.query,
             sources=request.sources,
@@ -125,14 +129,14 @@ async def search_news(request: NewsSearchRequest):
             date_from=request.date_from,
             date_to=request.date_to,
             limit=request.limit,
-            offset=request.offset
+            offset=request.offset,
         )
-        
+
         return NewsListResponse(
             articles=articles,
             total=total,
             page=(request.offset // request.limit) + 1,
-            page_size=request.limit
+            page_size=request.limit,
         )
     except Exception as e:
         logger.error(f"Error searching news: {e}")
@@ -144,8 +148,9 @@ async def list_sources():
     """List all available news sources"""
     try:
         from Module4_NiruAPI.services.news_service import NewsService
+
         service = NewsService()
-        
+
         sources = service.get_sources()
         return {"sources": sources}
     except Exception as e:
@@ -158,11 +163,11 @@ async def list_categories():
     """List all available categories"""
     try:
         from Module4_NiruAPI.services.news_service import NewsService
+
         service = NewsService()
-        
+
         categories = service.get_categories()
         return {"categories": categories}
     except Exception as e:
         logger.error(f"Error listing categories: {e}")
         raise HTTPException(status_code=500, detail=str(e))
-

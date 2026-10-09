@@ -1,6 +1,7 @@
 """
 MFA/TOTP Router - Setup, verify, and disable multi-factor authentication
 """
+
 import json
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, status, Request
@@ -50,7 +51,7 @@ async def setup_mfa(
     user.mfa_backup_codes = json.dumps(backup_codes)
     db.commit()
 
-    logger = __import__('logging').getLogger(__name__)
+    logger = __import__("logging").getLogger(__name__)
     logger.info(f"MFA setup initiated for user {user.id}")
 
     return MFASetupResponse(
@@ -68,19 +69,22 @@ async def verify_mfa(
 ):
     """Verify TOTP token and enable MFA"""
     if not user.mfa_secret:
-        raise HTTPException(status_code=400, detail="MFA not set up. Call GET /setup first.")
+        raise HTTPException(
+            status_code=400, detail="MFA not set up. Call GET /setup first."
+        )
 
     mfa = get_mfa_service()
     if mfa.verify_token(user.mfa_secret, request.token):
         user.mfa_enabled = True
         db.commit()
-        logger = __import__('logging').getLogger(__name__)
+        logger = __import__("logging").getLogger(__name__)
         logger.info(f"MFA enabled for user {user.id}")
-        return MFAVerifyResponse(success=True, message="MFA has been enabled successfully.")
+        return MFAVerifyResponse(
+            success=True, message="MFA has been enabled successfully."
+        )
     else:
         SecurityAudit.suspicious_activity(
-            user.id, getattr(user, 'last_login_ip', None),
-            f"mfa_verify_failed"
+            user.id, getattr(user, "last_login_ip", None), f"mfa_verify_failed"
         )
         raise HTTPException(status_code=400, detail="Invalid token. Please try again.")
 
@@ -93,13 +97,14 @@ async def disable_mfa(
 ):
     """Disable MFA (requires password confirmation)"""
     from ..providers.user_auth_provider import UserAuthProvider
+
     if not UserAuthProvider.verify_password(request.password, user.password_hash):
         raise HTTPException(status_code=403, detail="Invalid password")
     user.mfa_secret = None
     user.mfa_enabled = False
     user.mfa_backup_codes = None
     db.commit()
-    logger = __import__('logging').getLogger(__name__)
+    logger = __import__("logging").getLogger(__name__)
     logger.info(f"MFA disabled for user {user.id}")
     return MFAVerifyResponse(success=True, message="MFA has been disabled.")
 

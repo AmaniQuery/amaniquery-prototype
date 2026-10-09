@@ -2,6 +2,7 @@
 Kenya Gazette Spider - Crawls gazettes.africa for official Kenya Gazette notices
 Covers: legal notices, appointments, tenders, new legislation, constitutional petitions
 """
+
 import scrapy
 from datetime import datetime
 from scrapy import signals
@@ -37,7 +38,9 @@ class KenyaGazetteSpider(scrapy.Spider):
         return spider
 
     def spider_closed(self, spider, reason):
-        self.logger.info(f"Spider closed: {reason} — Success: {self.success_count}, Errors: {self.error_count}")
+        self.logger.info(
+            f"Spider closed: {reason} — Success: {self.success_count}, Errors: {self.error_count}"
+        )
 
     def spider_error(self, failure, response, spider):
         self.error_count += 1
@@ -60,8 +63,14 @@ class KenyaGazetteSpider(scrapy.Spider):
         self.consecutive_errors = 0
         self.logger.info(f"Parsing gazettes index page: {response.url}")
 
-        gazette_links = response.css('a[href*="/gazettes/ke/"][href$="/"]::attr(href)').getall()
-        gazette_links.extend(response.css('a[href*="gazettes.africa/gazettes"]:not([href*="/page/"])::attr(href)').getall())
+        gazette_links = response.css(
+            'a[href*="/gazettes/ke/"][href$="/"]::attr(href)'
+        ).getall()
+        gazette_links.extend(
+            response.css(
+                'a[href*="gazettes.africa/gazettes"]:not([href*="/page/"])::attr(href)'
+            ).getall()
+        )
 
         seen = set()
         for link in gazette_links:
@@ -76,7 +85,9 @@ class KenyaGazetteSpider(scrapy.Spider):
                     errback=self.errback_page,
                 )
 
-        next_page = response.css('a[rel="next"]::attr(href), .pagination a:contains("Next")::attr(href), a:contains("next")::attr(href)').get()
+        next_page = response.css(
+            'a[rel="next"]::attr(href), .pagination a:contains("Next")::attr(href), a:contains("next")::attr(href)'
+        ).get()
         if next_page:
             yield scrapy.Request(
                 url=response.urljoin(next_page),
@@ -95,16 +106,24 @@ class KenyaGazetteSpider(scrapy.Spider):
         self.consecutive_errors = 0
         self.logger.info(f"Parsing gazette: {response.url}")
 
-        title = response.css('h1::text, .page-title::text, title::text').get()
+        title = response.css("h1::text, .page-title::text, title::text").get()
         if not title:
-            title = response.url.split("/")[-2] if response.url.endswith("/") else response.url.split("/")[-1]
+            title = (
+                response.url.split("/")[-2]
+                if response.url.endswith("/")
+                else response.url.split("/")[-1]
+            )
 
         pub_date = None
-        date_text = response.css('time::attr(datetime), .date::text, .published::text').get()
+        date_text = response.css(
+            "time::attr(datetime), .date::text, .published::text"
+        ).get()
         if date_text:
             pub_date = date_text.strip()
 
-        content_parts = response.css('article p::text, .content p::text, main p::text').getall()
+        content_parts = response.css(
+            "article p::text, .content p::text, main p::text"
+        ).getall()
         content = "\n".join(p.strip() for p in content_parts if p.strip())
 
         pdf_links = response.css('a[href$=".pdf"]::attr(href)').getall()

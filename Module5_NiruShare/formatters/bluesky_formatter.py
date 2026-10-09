@@ -1,6 +1,7 @@
 from typing import List, Dict, Optional
 from .base_formatter import BaseFormatter
 
+
 class BlueskyFormatter(BaseFormatter):
     def __init__(self):
         super().__init__()

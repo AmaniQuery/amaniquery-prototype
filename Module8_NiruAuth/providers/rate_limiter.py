@@ -2,6 +2,7 @@
 Redis-backed Rate Limiter
 Sliding window counters for API rate limiting at 1M+ QPS
 """
+
 import time
 import hashlib
 import threading
@@ -21,7 +22,14 @@ class RateLimiter:
     def __init__(self, redis_client=None):
         self._redis = redis_client
 
-    def check(self, key: str, limit_per_minute: int, limit_per_hour: int, limit_per_day: int, cost: int = 1) -> Tuple[bool, Dict[str, int]]:
+    def check(
+        self,
+        key: str,
+        limit_per_minute: int,
+        limit_per_hour: int,
+        limit_per_day: int,
+        cost: int = 1,
+    ) -> Tuple[bool, Dict[str, int]]:
         """Check if request is within rate limits.
         Returns (allowed, {remaining_per_minute, remaining_per_hour, remaining_per_day}).
         """
@@ -31,13 +39,46 @@ class RateLimiter:
         day_window = int(now / 86400)
 
         if self._redis:
-            return self._check_redis(key, minute_window, hour_window, day_window, limit_per_minute, limit_per_hour, limit_per_day, cost)
-        return self._check_local(key, minute_window, hour_window, day_window, limit_per_minute, limit_per_hour, limit_per_day, cost, now)
+            return self._check_redis(
+                key,
+                minute_window,
+                hour_window,
+                day_window,
+                limit_per_minute,
+                limit_per_hour,
+                limit_per_day,
+                cost,
+            )
+        return self._check_local(
+            key,
+            minute_window,
+            hour_window,
+            day_window,
+            limit_per_minute,
+            limit_per_hour,
+            limit_per_day,
+            cost,
+            now,
+        )
 
-    def _check_redis(self, key: str, min_w: int, hr_w: int, day_w: int, lpm: int, lph: int, lpd: int, cost: int) -> Tuple[bool, Dict[str, int]]:
+    def _check_redis(
+        self,
+        key: str,
+        min_w: int,
+        hr_w: int,
+        day_w: int,
+        lpm: int,
+        lph: int,
+        lpd: int,
+        cost: int,
+    ) -> Tuple[bool, Dict[str, int]]:
         try:
             pipe = self._redis.pipeline()
-            for window_key, limit in [(f"rl:m:{key}:{min_w}", lpm), (f"rl:h:{key}:{hr_w}", lph), (f"rl:d:{key}:{day_w}", lpd)]:
+            for window_key, limit in [
+                (f"rl:m:{key}:{min_w}", lpm),
+                (f"rl:h:{key}:{hr_w}", lph),
+                (f"rl:d:{key}:{day_w}", lpd),
+            ]:
                 pipe.incrby(window_key, cost)
                 pipe.expire(window_key, 86400)
             results = pipe.execute()
@@ -46,7 +87,11 @@ class RateLimiter:
             day_count = results[4]
         except Exception as e:
             logger.warning(f"Redis rate limit failed, allowing: {e}")
-            return True, {"remaining_per_minute": lpm, "remaining_per_hour": lph, "remaining_per_day": lpd}
+            return True, {
+                "remaining_per_minute": lpm,
+                "remaining_per_hour": lph,
+                "remaining_per_day": lpd,
+            }
 
         allowed = min_count <= lpm and hr_count <= lph and day_count <= lpd
         return allowed, {
@@ -55,7 +100,18 @@ class RateLimiter:
             "remaining_per_day": max(0, lpd - day_count),
         }
 
-    def _check_local(self, key: str, min_w: int, hr_w: int, day_w: int, lpm: int, lph: int, lpd: int, cost: int, now: float) -> Tuple[bool, Dict[str, int]]:
+    def _check_local(
+        self,
+        key: str,
+        min_w: int,
+        hr_w: int,
+        day_w: int,
+        lpm: int,
+        lph: int,
+        lpd: int,
+        cost: int,
+        now: float,
+    ) -> Tuple[bool, Dict[str, int]]:
         with _local_lock:
             store = _local_store
             self._evict_expired(store, now)
@@ -84,7 +140,11 @@ class RateLimiter:
         current_min = int(now / 60)
         current_hour = int(now / 3600)
         current_day = int(now / 86400)
-        expired = [k for k in store if self._is_expired(k, current_min, current_hour, current_day)]
+        expired = [
+            k
+            for k in store
+            if self._is_expired(k, current_min, current_hour, current_day)
+        ]
         for k in expired:
             del store[k]
         if len(store) > 100000:
@@ -104,6 +164,8 @@ class RateLimiter:
             return True
         return False
 
-    def get_limits_for_tier(self, tier: str, endpoint: Optional[str] = None) -> Dict[str, int]:
+    def get_limits_for_tier(
+        self, tier: str, endpoint: Optional[str] = None
+    ) -> Dict[str, int]:
         """Get rate limits for a given tier and optional endpoint"""
         return config.get_rate_limit(tier, endpoint)
