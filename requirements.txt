@@ -20,7 +20,8 @@ langchain-community
 sentence-transformers>=6.0.1
 huggingface-hub>=0.20.0
 sentencepiece>=0.2.2
-protobuf>=7.36.2
+# google-generativeai pins google-ai-generativelanguage==0.6.15 which requires protobuf<6
+protobuf>=5.26.1,<6
 tiktoken
 textblob
 youtube-transcript-api
@@ -111,6 +112,7 @@ rank-bm25>=0.2.2
 
 # Development
 pytest
+pytest-asyncio
 black
 flake8
 

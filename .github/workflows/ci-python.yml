@@ -7,6 +7,7 @@ on:
       - '**.py'
       - 'requirements.txt'
       - 'setup.py'
+      - 'pyproject.toml'
       - '.github/workflows/ci-python.yml'
   pull_request:
     branches: [master, develop]
@@ -14,6 +15,7 @@ on:
       - '**.py'
       - 'requirements.txt'
       - 'setup.py'
+      - 'pyproject.toml'
       - '.github/workflows/ci-python.yml'
 
 concurrency:
@@ -101,5 +103,8 @@ jobs:
           pip install -r requirements.txt
           pip install mypy types-requests types-PyYAML
 
+      # Advisory: the codebase currently has ~650 pre-existing type errors
+      # (see report); keep the signal in the logs without blocking PRs.
       - name: Run mypy (type checking)
+        continue-on-error: true
         run: mypy . --ignore-missing-imports

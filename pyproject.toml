@@ -1,0 +1,17 @@
+[tool.black]
+# VibeVoice is vendored third-party code; leave it in upstream formatting.
+extend-exclude = "/VibeVoice/"
+
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+# Modules are mapped from the repo root (e.g. Module4_NiruAPI.api), which
+# avoids "Source file found twice" errors for packages without __init__.py.
+explicit_package_bases = true
+
+[tool.pytest.ini_options]
+# Only the unit-test suite runs in CI. The test_*.py files under
+# Module1_NiruSpider and Module4_NiruAPI are integration/demo scripts
+# (live crawls, SMS APIs, LLM calls) and are not safe to run in CI.
+testpaths = ["Module6_NiruVoice/tests"]
+asyncio_mode = "auto"
