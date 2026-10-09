@@ -57,5 +57,6 @@ yarn-error.log
 .env.local
 
 # Expo/EAS - Native folders for CNG (Continuous Native Generation)
-/android
+# Note: android/ is committed in this repo (gradle wrapper, keystore), so it
+# must NOT be ignored here; only generated outputs are covered above (build/, .gradle).
 /ios

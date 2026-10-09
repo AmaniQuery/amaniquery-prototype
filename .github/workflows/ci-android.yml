@@ -29,21 +29,34 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'gradle'
-          cache-dependency-path: android-app/android/build.gradle
+          cache-dependency-path: |
+            android-app/android/gradle/wrapper/gradle-wrapper.properties
+            android-app/android/build.gradle
+            android-app/android/app/build.gradle
+            android-app/android/settings.gradle
 
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v6
+      # settings.gradle and app/build.gradle shell out to `node` at configuration
+      # time (react-native / expo autolinking), so npm deps must be installed first.
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
         with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            android-app/android/.gradle
-          key: ${{ runner.os }}-gradle-${{ hashFiles('android-app/android/**/*.gradle*') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: android-app/package-lock.json
+
+      - name: Install JS dependencies
+        working-directory: ./android-app
+        run: npm ci
 
       - name: Build Android app
         working-directory: ./android-app/android
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v6
+        with:
+          name: amaniquery-debug-apk
+          path: android-app/android/app/build/outputs/apk/debug/*.apk
+          if-no-files-found: error
