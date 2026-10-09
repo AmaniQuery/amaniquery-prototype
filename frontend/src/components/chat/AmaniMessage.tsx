@@ -118,7 +118,7 @@ function processContentWithCitations(content: string, sources?: Source[]) {
   })
 }
 
-function MarkdownCodeBlock({ children, className, ...props }: { children: React.ReactNode, className?: string }) {
+function MarkdownCodeBlock({ children, className, ...props }: React.ComponentPropsWithoutRef<"code"> & { node?: unknown }) {
   const [copied, setCopied] = useState(false)
   const match = /language-(\w+)/.exec(className || "")
   const isInline = !match && !String(children).includes("\n")

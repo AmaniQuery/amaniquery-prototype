@@ -149,7 +149,7 @@ export default function DevelopersPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <CodeBlock code={MASTER_SYSTEM_PROMPT} id="master-prompt" />
+                    <CodeBlock code={MASTER_SYSTEM_PROMPT} id="master-prompt" copiedSection={copiedSection} onCopy={copyToClipboard} />
                   </CardContent>
                 </Card>
 
@@ -165,7 +165,7 @@ export default function DevelopersPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <CodeBlock code={HYBRID_RAG_PROMPT} id="rag-prompt" />
+                    <CodeBlock code={HYBRID_RAG_PROMPT} id="rag-prompt" copiedSection={copiedSection} onCopy={copyToClipboard} />
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -184,7 +184,7 @@ export default function DevelopersPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <CodeBlock code={LEGAL_SPECIALIST_PROMPT} id="legal-prompt" />
+                    <CodeBlock code={LEGAL_SPECIALIST_PROMPT} id="legal-prompt" copiedSection={copiedSection} onCopy={copyToClipboard} />
                   </CardContent>
                 </Card>
 
@@ -200,7 +200,7 @@ export default function DevelopersPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <CodeBlock code={NEWS_SPECIALIST_PROMPT} id="news-prompt" />
+                    <CodeBlock code={NEWS_SPECIALIST_PROMPT} id="news-prompt" copiedSection={copiedSection} onCopy={copyToClipboard} />
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -219,7 +219,7 @@ export default function DevelopersPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <CodeBlock code={PYDANTIC_VALIDATOR} id="pydantic-validator" language="python" />
+                    <CodeBlock code={PYDANTIC_VALIDATOR} id="pydantic-validator" language="python" copiedSection={copiedSection} onCopy={copyToClipboard} />
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -237,7 +237,7 @@ export default function DevelopersPage() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <CodeBlock code={GOLDEN_TEST_CASE} id="test-case" />
+                    <CodeBlock code={GOLDEN_TEST_CASE} id="test-case" copiedSection={copiedSection} onCopy={copyToClipboard} />
                   </CardContent>
                 </Card>
               </TabsContent>
