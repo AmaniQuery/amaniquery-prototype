@@ -57,7 +57,7 @@ langgraph-checkpoint-sqlite
 # Module 8: NiruAuth (Authentication & Authorization)
 PyJWT>=2.14.0
 bcrypt>=4.0.0
-email-validator>=2.0.0
+email-validator>=2.0.0.post2
 
 # LLM Integration
 openai
