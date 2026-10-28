@@ -98,6 +98,10 @@ einops
 opentelemetry-api>=1.39.0
 opentelemetry-sdk>=1.44.0
 opentelemetry-exporter-otlp>=1.39.1
+# OTLP/HTTP exporter + web/task instrumentation (see observability/otel_bootstrap.py)
+opentelemetry-exporter-otlp-proto-http>=1.39.1
+opentelemetry-instrumentation-fastapi>=0.50b0
+opentelemetry-instrumentation-celery>=0.50b0
 
 # Agentic AI & LangGraph
 langgraph>=1.2.11

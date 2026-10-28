@@ -1,0 +1,23 @@
+# Prometheus configuration for the AmaniQuery monitoring stack
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  # OpenTelemetry Collector metrics exposition (OTLP metrics from Python services)
+  - job_name: otel-collector
+    static_configs:
+      - targets: ["otel-collector:8889"]
+
+  # Prometheus self-monitoring
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Module6_NiruVoice exposes a prometheus_client metrics server on :9090 inside
+  # the api container, but ONLY when VOICE_ENABLE_PROMETHEUS=true (default: false).
+  # Uncomment when enabling voice metrics:
+  # - job_name: niruspeak
+  #   static_configs:
+  #     - targets: ["api:9090"]

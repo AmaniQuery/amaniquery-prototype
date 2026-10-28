@@ -1,0 +1,43 @@
+# OpenTelemetry Collector (contrib) configuration
+# Receives OTLP from Python services, fans out:
+#   metrics -> Prometheus scrape endpoint (:8889)
+#   logs    -> Loki OTLP endpoint
+#   traces  -> debug exporter (stdout; swap for a real backend as needed)
+
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch: {}
+
+exporters:
+  # Exposed for Prometheus to scrape (http://otel-collector:8889/metrics)
+  prometheus:
+    endpoint: 0.0.0.0:8889
+  # Loki 3.x accepts OTLP natively at /otlp
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+    tls:
+      insecure: true
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [debug]
+    metrics:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      processors: [batch]
+      exporters: [otlphttp/loki]

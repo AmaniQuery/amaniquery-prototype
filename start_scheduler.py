@@ -33,6 +33,14 @@ from pathlib import Path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
+# OpenTelemetry bootstrap (fail-open; no-op unless OTEL_EXPORTER_OTLP_ENDPOINT is set)
+try:
+    from observability.otel_bootstrap import setup_telemetry
+
+    setup_telemetry()
+except Exception:  # pragma: no cover - telemetry must never block startup
+    pass
+
 
 def check_dependencies():
     """Check if required dependencies are installed"""

@@ -72,6 +72,10 @@ services:
       # NiruSense Configuration
       - ENABLE_NIRUSENSE=false  # Set to true to enable
       - ENABLE_NIRUSENSE_SCHEDULER=false
+      # OpenTelemetry (traces/metrics to the collector; logs go to Loki via Promtail)
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_SERVICE_NAME=amaniquery-api
     depends_on:
       chroma:
         condition: service_healthy
@@ -138,6 +142,43 @@ services:
       - amaniquery_network
     restart: unless-stopped
 
+  # Object storage (NiruSense raw-asset store; the api service depends on it)
+  minio:
+    image: minio/minio:latest
+    container_name: amaniquery_minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9002:9000"    # S3 API (9000 is taken by other tooling on some hosts)
+      - "9003:9001"    # Web console
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=miniopassword123
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - amaniquery_network
+    restart: unless-stopped
+
+  # Creates the bronze-raw bucket referenced by the api MINIO_BUCKET setting.
+  minio-init:
+    image: minio/mc:latest
+    container_name: amaniquery_minio_init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      mc alias set local http://minio:9000 admin miniopassword123 &&
+      (mc mb -p local/bronze-raw || true)"
+    networks:
+      - amaniquery_network
+    restart: "no"
+
   # Scheduler Service (separate from redis)
   scheduler:
     build:
@@ -152,6 +193,10 @@ services:
       - QDRANT_PORT=6333
       - CHROMA_HOST=chroma
       - CHROMA_PORT=8000
+      # OpenTelemetry
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_SERVICE_NAME=amaniquery-scheduler
     depends_on:
       postgres:
         condition: service_started
@@ -179,6 +224,10 @@ services:
       - QDRANT_PORT=6333
       - CHROMA_HOST=chroma
       - CHROMA_PORT=8000
+      # OpenTelemetry
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_SERVICE_NAME=amaniquery-celery-worker
     depends_on:
       postgres:
         condition: service_started
@@ -204,6 +253,10 @@ services:
     environment:
       - DATABASE_URL=postgresql://amaniquery:amaniquery_password@postgres:5432/amaniquery
       - REDIS_URL=redis://redis:6379/0
+      # OpenTelemetry
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_EXPORTER_OTLP_PROTOCOL=http/protobuf
+      - OTEL_SERVICE_NAME=amaniquery-celery-beat
     depends_on:
       postgres:
         condition: service_started
@@ -218,12 +271,105 @@ services:
     profiles:
       - celery  # Only starts with: docker-compose --profile celery up
 
+  # ============================================================
+  # MONITORING STACK (OpenTelemetry Collector + Prometheus + Loki + Grafana)
+  # Configs live in ./monitoring/. Start with:
+  #   docker compose up -d otel-collector prometheus loki promtail grafana
+  # Grafana: http://localhost:3001 (admin / admin - change in production)
+  # ============================================================
+
+  # OTLP receiver -> Prometheus-format metrics (:8889) + Loki (logs) + debug (traces)
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.116.0
+    container_name: amaniquery_otel_collector
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./monitoring/otel-collector-config.yaml:/etc/otelcol/config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP (used by Python services)
+      - "8889:8889"   # Prometheus scrape endpoint
+    networks:
+      - amaniquery_network
+    restart: unless-stopped
+
+  # Metrics storage; scrapes otel-collector:8889 every 15s
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: amaniquery_prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console=/usr/share/prometheus/consoles"
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - amaniquery_network
+    restart: unless-stopped
+
+  # Log storage; receives OTLP logs from the collector and pushes from Promtail
+  loki:
+    image: grafana/loki:3.4.2
+    container_name: amaniquery_loki
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes:
+      - ./monitoring/loki/loki-config.yml:/etc/loki/local-config.yaml:ro
+      - loki_data:/loki
+    ports:
+      - "3100:3100"
+    networks:
+      - amaniquery_network
+    restart: unless-stopped
+
+  # Ships container stdout/stderr (all compose services) to Loki via docker_sd
+  promtail:
+    image: grafana/promtail:3.4.2
+    container_name: amaniquery_promtail
+    command: ["-config.file=/etc/promtail/config.yml"]
+    volumes:
+      - ./monitoring/promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - promtail_data:/positions
+    networks:
+      - amaniquery_network
+    restart: unless-stopped
+
+  # Dashboards + log exploration UI
+  grafana:
+    image: grafana/grafana:11.4.0
+    container_name: amaniquery_grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin  # CHANGE IN PRODUCTION
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    ports:
+      - "3001:3000"  # 3000 is taken by the frontend
+    depends_on:
+      - prometheus
+      - loki
+    networks:
+      - amaniquery_network
+    restart: unless-stopped
+
 
 
 volumes:
   chroma_data:
   postgres_data:
   minio_data:
+  prometheus_data:
+  loki_data:
+  grafana_data:
+  promtail_data:
 
 networks:
   amaniquery_network:

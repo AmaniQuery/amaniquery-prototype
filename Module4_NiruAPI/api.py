@@ -16,6 +16,11 @@ import psutil
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# OpenTelemetry bootstrap (fail-open; no-op unless OTEL_EXPORTER_OTLP_ENDPOINT is set)
+from observability.otel_bootstrap import setup_telemetry, instrument_fastapi
+
+setup_telemetry()
+
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
@@ -960,6 +965,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# OpenTelemetry: instrument the FastAPI app (fail-open; no-op unless configured)
+instrument_fastapi(app)
 
 # Add authentication middleware (optional - can be enabled via env var)
 if os.getenv("ENABLE_AUTH", "false").lower() == "true":

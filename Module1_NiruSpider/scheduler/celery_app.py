@@ -19,6 +19,15 @@ import os
 from celery import Celery
 from loguru import logger
 
+# OpenTelemetry bootstrap (fail-open; no-op unless OTEL_EXPORTER_OTLP_ENDPOINT is set)
+try:
+    from observability.otel_bootstrap import setup_telemetry, instrument_celery
+
+    setup_telemetry()
+    instrument_celery()
+except Exception:  # pragma: no cover - telemetry must never block startup
+    pass
+
 # Get Redis URL from environment
 redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
